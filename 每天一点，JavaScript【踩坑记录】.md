@@ -1,4 +1,6 @@
 # 加减乘除精度丢失
+**小数**
+
 解决方案：第三方库
 Decimal.js
 bignumber.js
@@ -23,6 +25,46 @@ currency.js （专门处理金额显示）
 0.3 / 0.1 = 2.9999999999999996
 0.69 / 10 = 0.06899999999999999
 ```
+**大数显示 `Intl.NumberFormat().format()`**
+
+```javascript
+var number = 2.9364136545300044e+24;
+var n = new Intl.NumberFormat().format(number); 
+// 2,936,413,654,530,004,400,000,000
+```
+
+**大数相加**
+
+```javascript
+// BigInt
+const z = BigInt(x) + BigInt(y);
+console.log(z.toString());
+
+// 字符串相加
+let a = "90007777777";
+let b = "123456789999999"
+
+function add(){
+  let maxLen = Math.max(a.length, b.length);
+  
+  // 第一步：用0补齐
+  a = a.padStart(maxLen, 0); // "00090007777777"
+  b = b.padStart(maxLen, 0);
+  
+  // 第二步：倒叙遍历maxLen手动进位
+  let t = 0;
+  let f = 0; // '进位用'
+  for(let i= maxLen-1;i>0;i--){
+    t = parseInt(a[i]) + parseInt(b[i]) + f;
+    f = Math.floor(t / 10);
+    sum = t % 10 + sum;
+  }
+  if(f===1){
+    sum = "1"+sum
+  }
+}
+```
+
 # if-else
 
 无论多少个`if`,`if else`，必须要有一个`else {`兜底
