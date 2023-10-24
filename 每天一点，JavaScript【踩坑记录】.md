@@ -768,6 +768,43 @@ ECMA-262描述了一组用于操作数据值的操作符，包括算数操作符
     5 - null			// 5 null被转成了0
 ```
 
+## 零值相等
+
+> **类似于同值相等，但`+0`和`-0`被视为相等：**
+> `includes()` 使用的零值相等算法
+>
+> **严格相等：**
+> `indexOf()` 使用的严格相等算法，但+0/-0又除外
+> `Object.is()` 使用的严格相等算法，但NaN又除外
+>
+> 参考：https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Equality_comparisons_and_sameness#%E9%9B%B6%E5%80%BC%E7%9B%B8%E7%AD%89
+
+includes和indexOf区别
+
+```javascript
+NaN === NaN; 				 // false
++0 === -0;					 // true
+
+// includes 完全零值相等
+[NaN].includes(NaN); // true
+[+0].includes(-0);   // true
+
+// indexOf
+[NaN].indexOf(NaN); // -1
+[+0].indexOf(-0);		// 0
+
+// Object.is
+Object.is(NaN, NaN); // true
+Object.is(+0, -0);   // false
+
+// 所以超级严格相等
+function is(x, y){
+  return [x].indexOf(y) === 0 && Object.is(x, y)
+}
+```
+
+
+
 ## 双感叹号`!!`
 
 ```javascript
