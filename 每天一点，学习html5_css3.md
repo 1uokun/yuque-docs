@@ -759,6 +759,8 @@ module.exports = {
   **`_self`当前页面跳转**，非此种方式可能会导致当前页面不刷新
 - `window.open(url, undefined, "noopener")`
   **`noopener`  **避免新页面使用同源同进程打开导致父页面卡死
+- 第三方`webview`打开新页面请用这个
+  如**微信公众号**、**企微侧边栏**等打开新弹窗
 
 # 图片取消跨域
 
