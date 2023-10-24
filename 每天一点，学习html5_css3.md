@@ -102,11 +102,11 @@
 `<div>`、`<p>`、`<li>`、`<h1>`、`<h2>`、`<h3>`、 
 -  **区别** 
    1. **块级元素**会独占一行，其宽度自动填满其父元素宽度
-**行内元素**不会独占一行，相邻的行内元素会排列在同一行里，如果一行排不下才会换行
+   **行内元素**不会独占一行，相邻的行内元素会排列在同一行里，如果一行排不下才会换行
    2. **块级元素**可以设置`width`、`height`属性
-**行内元素**设置`width`、`height`**无效**
+   **行内元素**设置`width`、`height`**无效**
    3. **块级元素**可以设置`margin`、`padding`
-**行内元素**只有`margin-left`、`padding-right`可以产生边距效果，`margin-top`，`padding=bottom`无效（水平方向有效，竖直方向无效）
+   **行内元素**只有`margin-left`、`padding-right`可以产生边距效果，`margin-top`，`padding=bottom`无效（水平方向有效，竖直方向无效）
 ## 行内块元素
 
 - **行内块元素 inline-block
@@ -358,8 +358,8 @@ React-Native layout with Flexbox
 和`alignItems`选项和效果相同，
 但不影响容器中的子级，通过该属性可以代替父级设置的`alignItems`任何选项 
 -  **alignContent**
-定义沿横轴的线分布，
-仅在使用`flexWrap`时生效 
+   定义沿横轴的线分布，
+   仅在使用`flexWrap`时生效 
    - `flex-start`(默认值)
    - `strctch`(在web中使用Yoga时为默认值)
 -  **flexWrap** 
@@ -753,7 +753,21 @@ module.exports = {
  <input type =“file”accept =“image / *”capture>
 ```
 
+# window.open 最稳妥的跳转链接
+
+- `window.open(url, "_self")`
+  **`_self`当前页面跳转**，非此种方式可能会导致当前页面不刷新
+- `window.open(url, undefined, "noopener")`
+  **`noopener`  **避免新页面使用同源同进程打开导致父页面卡死
+
+# 图片取消跨域
+
+```html
+<img referrerpolicy="no-referrer" />
+```
+
 # 挂载在DOM上的EventTarget
+
 不挂载到`document`、`window`上避免污染原生事件，比如DOMContentLoaded、resize事件等
 ```javascript
 const MY_EVENT = "my_event";
