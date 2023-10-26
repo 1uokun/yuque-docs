@@ -54,9 +54,12 @@ function add(){
   // 第二步：倒叙遍历maxLen手动进位
   let t = 0;
   let f = 0; // '进位用'
+  let sum = "";
   for(let i= maxLen-1;i>0;i--){
     t = parseInt(a[i]) + parseInt(b[i]) + f;
+    // 除10取整
     f = Math.floor(t / 10);
+    // 除10取余
     sum = t % 10 + sum;
   }
   if(f===1){
@@ -161,10 +164,15 @@ String('')     // '' 强制转换为字符串
 
 # 断言assert
 ```javascript
-console.assert(assertion, msg)
+/* assrertion为false时打出
+ * ▼ 断言失败: msg
+ * stack trace @ xx.js:12
+ * ...
+ * 比`console.log`多了堆栈跟踪
+ * 比`console.trace`多了判断显示，trace是必显
+ */
+console.assert(assertion:bool, msg)
 ```
-assertion：一个布尔表达式，如果为false，将会输出msg `Assertion failed: asd`
-
 # sleep()函数
 利用阻塞实现java的sleep(休眠正在执行的线程)
 ```javascript
@@ -174,7 +182,7 @@ function sleep(delay){
 }
 ```
 
-# MDN🌟
+
 
 **判断是不是函数**
 
@@ -188,12 +196,16 @@ Object.prototype.toString.call(callback) != "[object Function]"
 new Array(10) //(10)[empty × 10]
 ```
 
+
+
+# try...catch
+
 **try里面放return，finally还会执行吗？**
 
 - **从finally语句块返回**
 
-> 如果从`finally`块中返回一个值，那么这个值将会成为整个`try-catch-finally`的返回着，
-无论是否有`return`语句在`try`和`catch`中。**这包括在**`**catch**`**块里抛出的异常。**
+> 如果从`finally`块中返回一个值，那么这个值将会成为整个`try-catch-finally`的返回值，
+无论是否有`return`语句在`try`和`catch`中。**这包括在`catch`块里抛出的异常。**
 
 
 ```javascript
@@ -214,9 +226,7 @@ console.log(foo()); // 3
 任何给定的异常只会被离它最近的封闭catch块捕获一次。
 当然，在"inner"块抛出的任何新异常（因为catch块里的代码也可以抛出异常），将会被"outer"块所捕获。
 
-🚩**用一句话描述try catch能捕获到哪些JS异常
-
-**
+🚩**用一句话描述try catch能捕获到哪些JS异常**
 **之前**：`syntaxError`是捕获不到的，因为 **语法异常** 在语法检查阶段就报错了
 **之中**：能捕获到异常
 **之后**：1.**异步错误**，如`setTimeout`内的错误无法捕获 2. **函数**callback内的`Throw`无法捕获到
@@ -240,88 +250,7 @@ JSON.stringify(params, function(key, value){
 }) 
 ```
 
-🚩**Object.is()**
 
-`Object.is()`的结果与 “`===`”运算符相同，
-仅有的例外是： 它会认为 “`+0`”与“`-0`”不相等， 而且“`NaN`”等于“`NaN`”
-
-🚩**Object.create()**
-
-创建一个新对象，使用现有的对象来提供新创建的对象的__proto__。（继承属性） 
-```javascript
-const obj = Object.create({foo:1},{ // foo 是个继承属性
-
-  bar:{ // bar 是个不可枚举属性
-    value: 1
-  },
-  baz:{ // baz是个自身可枚举属性
-    value: 2,
-    enumerable: true
-  }
-
-})
-
-console.log(obj)
-
-// chrome
-▼Object
-   baz: 2, // 亮紫
-   bar: 1, // 暗紫
- ▼__proto__:
-     foo: 1
-```
-```javascript
-Object.create = function(proto, propertiesObject){
-  function F(){}
-  F.prototype = proto;
-
-  // return new F();
-  var obj = new F();
-
-  if(propertiesObject !== undefined){
-    Object.defineProperties(obj, propertiesObject)
-  }
-
-  return obj;
-}
-```
-
-
-🚩**Object.assign()**
-
-1.  let to = Object(target)
-console.log(to == target , to === target); // true true
-也可以理解为 `return target` 
-2.  for…in
-首先这里简化了varArgs，假设只传了一个对象进去
-其次，for…in只能遍历到对象的_可枚举属性_，即继承属性和不可枚举属性是不能拷贝的 
-3.  继承属性不能拷贝 
-4.  直接获取指定属性值
-所以不会拷贝访问器属性，而是拷贝结果值
-const obj = {
-get  name(){ return “Niko” }
-} 
-
-obj[“name”]
-for(var I in obj){.console.log(i) } // name
-```javascript
-Object.assign = function(target, varArgs){
-
-   let to = Object(target); //[1]
-
-    for(var i in varArgs[0]){ // [2]
-
-       if( varArgs[0].hasOwnProperty(i) ){ // [3]  
-
-            to[i] = varArgs[0][i] // [4]
-      
-       }
-  
-    }
-  
-   return to
-}
-```
 
 
 # 闭包

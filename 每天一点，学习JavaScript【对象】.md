@@ -125,16 +125,39 @@ ECMAScript中有两种属性：`数据属性`和`访问器属性`
 - `Reflect.ownKeys`(obj)
 返回一个数组，包括对象自身的所有键名（包括不可枚举属性和Symbol属性或字符串）
 
-#### `**Object.assign()**`
+
+
+#### `Object.assign()`
 
 `Object.assign(target, source1, source2)`
 **对象的合并**，将源对象(source)可枚举的属性，复制到目标对象(target)并返回被修改的目标对象
 注意点：
 
 1. 浅拷贝
-拷贝的是源对象的引用，源对象有任何变化，都会反应到目标对象上（只复制一次）
-2. 同名属性的替换
-目标对象和源对象的属性名相同时，源对象会替换掉目标对象的该属性
+  仅拷贝属性值，如何源对象的属性值是一个对象引用，那么它也只指向那个引用。
+
+  ```javascript
+  var obj = {
+    a: { name: 'Niko' }, // 引用类型
+    b: 123 
+  }
+  var b = {}
+  Object.assign(b, obj);
+  
+  // 如果修改 obj.a.name = 'asd';
+  // b.a = {name: 'asd'}
+  
+  // 如果修改 obj.a = 456
+  // b.a则不会被修改，浅层修改不会影响
+  
+  // {name: 'Niko'} 是obj.a和b.a共享的
+  ```
+
+2. 继承属性和不可枚举属性是不能拷贝的
+
+3. 同名属性的替换
+  目标对象和源对象的属性名相同时，源对象会替换掉目标对象的该属性
+
 3. 数组的处理
 Object.assign([1, 2, 3],[4, 5])	// 返回[4, 5, 3]	数组被视为对象{1:1, 2:2, 3:3},{1:4, 2:5}
 
@@ -173,47 +196,7 @@ Object.assign([1, 2, 3],[4, 5])	// 返回[4, 5, 3]	数组被视为对象{1:1, 2:
   }
 ```
 
-4. 仅拷贝属性值，如何源对象的属性值是一个对象引用，那么它也只指向那个引用。
 
-```javascript
-  var obj = {
-    a: { name: 'Niko' }, // 引用类型
-    b: 123
-  }
-  
-  var b = {}
-  
-  Object.assign(b, obj);
-  
-  obj.a = 456;
-  obj.b = 789;
-  console.log(b); // { a: { name: 123 }, b: 789 }
-  
-  obj.a.name = 456;
-  console.log(b); // { a: { name: 456 }, b: 789 }
-  
-  // 即 b.a.name 指向 obj.a.name
-  // b.a是新创建的一个对象
-  
-  // b.b 指向 obj.b
-```
-
-5. 继承属性和不可枚举属性是不能拷贝的
-
-```javascript
-  const obj = Object.create({foo: 1}, { // foo是个继承属性（详见Object.create）
-    bar: {
-      value: 2 // bar 是个不可枚举属性。
-    },
-    baz: {
-      value: 3,
-      enumerable:true // baz 是个自身可枚举属性。
-    }
-  });
-  
-  const copy = Object.assign({}, obj);
-  console.log(copy); // { baz: 3 }
-```
 
 ### **对原型对象的操作方法**
 
@@ -252,24 +235,54 @@ Object.getPrototypeOf(object)	替代 object.__proto__
 
 ps:改变原型的向上搜索算法;super不能使用箭头函数
 
+
+
 ### `Object.create()`
 
-警告：由于现代JavaScript引擎优化属性访问所带来的特性的关系，改变对象的`[[Prototype]]`在各个浏览器和JavaScript引擎上都是一个很慢的操作。其在更改继承的性能上的影响是微妙而又广泛的，这不仅仅限于`obj.__proto__=...`语句上的时间花费，而且可能会延伸到任何代码，那些可以访问任何`[[Prototype]]`已被更改的对象的代码。如果你关心性能，你应该避免设置一个对象的`[[Prototype]]`。相反，你应该使用`Object.create()`来创建带有你想要的`[[Prototype]]`的新对象。
+创建一个新对象，使用现有的对象来提供新创建的对象的__proto__。（继承属性） 
+
 ```javascript
-  const Sup = {
-  	name : 'Niko'
+const obj = Object.create(
+  { foo : 1 }, // foo 是个继承属性                          
+  { 
+    bar:{ // 属性默认不可枚举
+      value: 1
+    },
+    baz:{
+      value: 2,
+      enumerable: true // 主动设置可枚举
+    }
   }
-  
-  const Sub = Object.create(Sup,{
-  	age:{
-      	value:23
-      }
-  })
-  
-  console.log(Sub.__proto__ === Sup )	//true
-  console.log(Sub)	// {age:23,__proto__:Sup}
+)
+
+console.log(obj)
+
+// chrome
+▼Object
+   baz: 2, // 亮紫
+   bar: 1, // 暗紫
+ ▼__proto__:
+     foo: 1
 ```
-不要用`Object.create()`创建对象，
+模拟实现`Object.create`
+
+```javascript
+Object.create = function(proto, propertiesObject){
+  function F(){}
+  F.prototype = proto;
+
+  // return new F();
+  var obj = new F();
+
+  if(propertiesObject !== undefined){
+    Object.defineProperties(obj, propertiesObject)
+  }
+
+  return obj;
+}
+```
+
+
 
 ### **proto** 原型污染
 
@@ -320,7 +333,7 @@ ps:改变原型的向上搜索算法;super不能使用箭头函数
  delete obj.age       // cannot delete when isSealed
  console.log(obj.age) // 26
 ```
- 
+
 
 - `Object.isSealed()` 判断是否被**封闭**
 - `Object.preventExtensions()`让一个对象变的**不可拓展**
@@ -331,7 +344,7 @@ ps:改变原型的向上搜索算法;super不能使用箭头函数
  Object.defineProperty(obj, "age", {value}) // 报错：Uncaught TypeError: Cannot define property age, object is not extensible
  // 需要try...catch
 ```
- 
+
 
 - `Object.isExtensible()` 判断是否**可拓展**
 
@@ -1249,7 +1262,7 @@ console.log(new SubClass())
    enumerable:false,	// 默认为false
  })
 ```
- 
+
 
 2. 基本类型中打印出来的是黑色，表示`String`“字符串”
 3. 基本类型中打印出来的是蓝色，表示`Number`“数字”
