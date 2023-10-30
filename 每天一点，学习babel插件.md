@@ -94,7 +94,7 @@ babel内置功能
 
 ### plugin-syntax-xxx
 
-`syntax plugin`是在`parserOptions`中放入一个flag让parser只到要parse什么语法，最终的parse逻辑还是babel parser(babylon)实现的
+`syntax plugin`是在`parserOptions`中放入一个flag让parser知道要parse什么语法，最终的parse逻辑还是babel parser(babylon)实现的
 
 
 
@@ -107,8 +107,6 @@ babel内置功能
 然后使用`@babel/plugin-transform-typescript`来转换解析出的ts对应的AST的转换
 
 平时一般使用`@babel/presert-typescript`，它对上面两个插件做了封装
-
-
 
 ### plugin-proposal-xxx
 
@@ -157,8 +155,6 @@ plugin是单个转换功能的实现，当plugin比较多或者plugin的options�
 }
 ```
 
-## @babel/preset-env
-
 
 
 ## 编写配置
@@ -198,7 +194,6 @@ babel设计了插件之间共享逻辑的机制，就是helper。helper分为两
 
   这种`"default"`一般也用不到，主要是babel内部用。我们要使用时可以从`@babel/runtime`包引入
   
-
 - **一种是操作AST的工具函数，比如变量提升这种通用逻辑**`@babel/helper-hoist-variables`
 
   ```javascript
@@ -265,6 +260,69 @@ var Circle = function Circle(){
 
 1. 先应用plugin，再应用preset
 2. plugin从前到后，preset从后到前
+
+
+
+# 实例：@babel/preset-env
+
+```javascript
+{
+    presets: [
+        ['@babel/preset-env', {
+            targets: 'chrome 30', // 根据指定浏览器版本来引入对应的插件
+            debug: true, 					// 可以打印出用了哪些插件
+            useBuiltIns: 'usage', // 引入方式，用到时再引用helper。'entry'表示入口处全引用
+            corejs: 3							// polyfill实现版本，一般都为3，2的话部分不支持
+        }]
+    ]
+}
+```
+
+🚩**`@babel/preset-env`的处理方式是helper代码直接注入、regenerator、core-js代码全局引入**
+
+![helper代码直接注入](./assets/helpers.png)
+
+这样就会导致多个模块重复注入同样的代码，包体积冗余和污染全局环境。
+
+所以需要将runtime给transform掉，即将**注入runtime代码的helper类**改成**同过操作AST的函数helper类**
+
+而`@babel/plugin-transform-runtime`插件就是为了解决上面的问题
+
+# 实例：@babel/plugin-transform-runtime
+
+> 解决让`@babel/preset-env`从辅助(helper)代码直接注入和core-js全局引入的方式
+> 改成从`@babel.runtime-corejs3`中引入，以节省代码大小。
+
+```javascript
+{
+    presets: [
+        ['@babel/preset-env', {
+            targets: 'chrome 30',
+            debug: true,
+          	// 使用runtime后不得设置useBuiltIns，否则此插件无法完全沙盒化环境
+            // useBuiltIns: 'usage',
+            corejs: 3
+        }]
+    ],
+    plugins: [
+        ['@babel/plugin-transform-runtime', {
+            corejs: 3
+        }]
+    ]
+}
+```
+
+core-js的api不再是**全局引入**，而是变成了**模块化引入**。
+避免在多个文件的时候每个文件都注入一大段代码，造成重复。
+❓目前打包都是单文件，而且也没有require()`api，难道只针对node生效还是代码被混淆了
+
+![runtime-corejs3](./assets/runtime-corejs3.awebp)
+
+原理：先插件plugins，后preset，就导致`@babel/plugin-transform-runtime`是在`@babel/preset-env`之前调用的，
+提前做了api的转换，那到了`@babel/preset-env`就没什么可转了，也就实现了polyfill的抽取。
+
+缺点：runtime不能像preset-env那样指定target的env，导致可能不需要polyfill的也被引入相关polyfill包，
+目前能做的就是指定`corejs`版本`2`/`3`。
 
 # babel-plugin-tester
 
