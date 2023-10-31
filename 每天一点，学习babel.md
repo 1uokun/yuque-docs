@@ -333,6 +333,12 @@ core-js的api不再是**全局引入**，而是变成了**模块化引入**。
 缺点：runtime不能像preset-env那样指定target的env，导致可能不需要polyfill的也被引入相关polyfill包，
 目前能做的就是指定`corejs`版本`2`/`3`。
 
+# 实例：babel-plugin-import
+
+`Tree Shaking`的一种手动实现方式(cherry-picking)
+
+
+
 # babel-plugin-tester
 
 ## 插件的单元测试
@@ -366,3 +372,8 @@ Chrome、firefox等浏览器支持在文件末尾加上一行注释，
 ## 生成sourcemap
 
 ## 消费sourcemap
+
+
+
+# .babelc 配置文件
+
