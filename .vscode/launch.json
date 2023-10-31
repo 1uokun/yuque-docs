@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "babel测试",
+            "program": "${workspaceFolder}/babel-example/test/version1.js",
+            "request": "launch",
+            "type": "node"
+        },
+    ]
+}

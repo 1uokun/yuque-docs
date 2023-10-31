@@ -261,7 +261,16 @@ var Circle = function Circle(){
 1. 先应用plugin，再应用preset
 2. plugin从前到后，preset从后到前
 
+# @babel/cli
 
+```shell
+npx babel script.js --out-file script-compiled.js
+```
+
+使用babel-cli直接打包文件，本文全篇都是基于此工具进行打包
+而非`webpack`的loader。
+
+polyfill指定库`corejs@2/3`
 
 # 实例：@babel/preset-env
 
