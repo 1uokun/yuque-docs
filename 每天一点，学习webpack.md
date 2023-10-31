@@ -247,3 +247,127 @@ self["webpackHotUpdate"](0, {
   },
 });
 ```
+
+
+
+# 《通过Tree Shaking（摇树）来减少Javascript载荷》[1]
+
+#### 1.什么是Tree Shaking（摇树）？
+
+`Tree Shaking`是消除死代码的一种形式，该术语由Rollup推广
+
+```diff
+- import arrayUtils from 'array-utils';
++ import { unique, implode } from 'array-utils'
+```
+
+#### 2.防止Babel将ES6模块转换为CommonJS模块
+
+`.babelrc`或`package.json`配置babel-preset-env不使用ES6模块,
+它会自动完成ES模块转换为CommonJS模块（即最终为`require`而不是`import`）
+
+```json
+{
+  "presets": [
+    ["env", {
+      "modules": false
+    }]
+  ]
+}
+```
+
+#### 3.注意副作用
+
+使用`import`引用模块可能会造成_副作用_（函数副作用）,因为`import`是值的引用，而不像`require`值的拷贝。
+_副作用_也适用于ES6模块，接受可预测输入并获得同等可预测输出 而不修改其自身范围之外的任何内容的模块
+它们是独立的_模块化_代码段。在`Webpack`中可以通过`"sideEffects": false`在`package.json`中进行指定暗示软件包及其依赖项没有_副作用_
+
+```json
+{
+  "name": "webpack-tree-shaking-example",
+  "version": "1.0.0",
+  "sideEffects": false
+}
+```
+
+或者指定特定文件没有副作用
+
+```json
+{
+  "name": "webpack-tree-shaking-example",
+  "version": "1.0.0",
+  “sideEffects”: [
+    "./src/utils/utils.js"
+  ]
+}
+```
+
+#### `/*@__PURE__*/`
+
+由于JS语法的复杂程度，webpack没有打算给JS实现**数据流分析**，所以插件无法知道一个函数调用是否具有副作用的。
+所以对于一些导出模块，如果是纯的函数调用，则需要加上`/*@__PURE__*/`注释来表明这个函数是pure的（拥有独立的域）。
+这是`uglifyjs`(一个压缩工具)使用的方法。当然也可以使用相关的babel插件进行批量添加。
+
+```javascript
+var allPass = /*#__PURE__*/_curry1(function(){
+
+})
+```
+
+#### 4.cherry-picking（像采摘樱桃一样摘只要的那部分）
+
+由于`"sideEffects"`只适用于webpack，所以在非webpack环境下需要其他方案替代
+
+- `babel-plugin-lodash`
+
+```javascript
+import { sortBy } from "lodash"
+import sortBy from "loadsh-es/sortBy"
+```
+
+还有其他类似的摇树功能：
+
+- `webpack-common-shake`
+  删除无效代码 由UglifyJS（或其他优化程序）决定 
+
+```javascript
+ exports.used = 1;
+ var tmp = exports.unused = 2;
+ ↓ ↓ ↓ ↓ ↓ ↓
+ exports.used = 1;
+ var tmp = 2;
+```
+
+- `ant-design/babel-plugin-import` 
+
+```javascript
+ import { Button } from 'antd';
+ ↓ ↓ ↓ ↓ ↓ ↓
+ var _button = require('antd/lib/button');
+```
+
+# ESModule对Tree-Shaking的优势[2]
+
+1. Webpack从2开始也支持Tree-shaking，即对于一个模块，没有被使用过的引入代码并不会被打包 
+
+```javascript
+ import {isNumber, isString} from 'loadsh-es';
+
+ isNumber(123);
+
+ //最总isString代码不会被打包
+```
+
+2. **原理**
+   相对于CommonJS，ESModule对静态分析更友好，
+   通过**作用域分析**(scope analysis)可以知道引用后的模块哪些被用了哪些没被用，从而可以忽略未被使用的。
+   在2之前可以使用插件`webpack-deep-scope-analysis-plugin`
+   详见 [https://segmentfault.com/n/1330000021783419#articleHeader20](https://segmentfault.com/n/1330000021783419#articleHeader20)
+3. Babel不会造成webpack的Tree-shaking失效
+   https://www.bilibili.com/video/BV1oy4y1p7CC/?vd_source=7124316d1092457c652c2689962a24c1
+
+# 参考
+
+- [1] [Reduce JavaScript Payloads with Tree Shaking](https://developers.google.com/web/fundamentals/performance/optimizing-javascript/tree-shaking)
+- [2] [webpack 如何通过作用域分析消除无用代码](https://zhuanlan.zhihu.com/p/43844419)
+

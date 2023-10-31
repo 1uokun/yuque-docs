@@ -1,0 +1,19 @@
+{
+  "name": "tree-shaking",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "iife": "rollup main.js --file bundle.js --format iife"
+  },
+  "dependencies": {
+    "antd": "^5.10.3",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.23.2",
+    "rollup": "^1.31.0",
+    "rollup-plugin-babel": "^4.4.0"
+  }
+}
