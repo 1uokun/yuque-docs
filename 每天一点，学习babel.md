@@ -9,6 +9,12 @@ babel最开始的名字叫6to5，主要是做es6到es5语法的转换和polyfill
 
 但做的事情并没有变，依然是从高版本语法的api转换成低版本的语法并自动polyfill缺少的api。
 
+## babe-cli 和 @babel/cli 区别
+
+一个是7.0版本之前，一个是7.0版本之后
+不能同时使用，只能选择其中一个
+包括`babel-core`&`@babel/core`
+
 # Babel的编译流程
 
 ## @babel/parser
@@ -45,13 +51,13 @@ A：这两个工具的parser解析器不同，其次babel和eslint在开发流�
 最早是由esprima指定了estree标准，后来es标准更新太快跟不上，
 后面基于`estree`标准出现了`acorn`，**支持通过插件拓展语法支持**
 
-@babel/parser就fork了acorn进行拓展：
+Babel就fork了acorn进行拓展并命名为`@babel/parser`：
 
 - 拓展`Literal`为StringLiteral、BooleanLiteral等区分基础类型标识
 - 拓展`Property`为ObjectProperty和ObjectMethod
 - ...
 
-ESLint也fork了acorn进行拓展：
+ESLint也fork了acorn进行拓展并命名为`espree`：
 
 - 为context提供`context.getSourceCode()`功能🚩
   可以定位到代码的前后，从而能结合上下文进行检查和修复
