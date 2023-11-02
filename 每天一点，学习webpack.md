@@ -132,29 +132,186 @@ var __webpack_exports__ = {
 Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
 2. `__webpack_require__.r`
 Object.defineProperty(exports, '__esModule', { value: true });
-## Tree Shaking
-`Tree Shaking`指基于**ES Module**进行静态分析，通过AST将用不到的函数进行移除，从而减小打包体积。
 
-1. `**import ***`**依然有效
-**import * as maths from "./maths";
+# Tree Shaking
 
-2. `**JSON TreeShaking**`**json未用的字段也依然有效**
-import obj from "./main.json";
+`Tree Shaking`是一个术语，通常用于描述移除JavaScript上下文中的未引用代码(`dead-code`)。
+它依赖于ES Module语法`import`和`export`的静态结构特性，由`rollup`普及起来的。
 
-3. **引入支持Tree Shaking的Package
-使用**`**lodash-es**`**替代**`**lodash**`**
+webpack在**压缩阶段**借助`UglifyJS`移除dead-code的。
 
-4. **Rollup 首先提出并实现的，webpack 在2.x版本借助 UglifyJS 实现
-dead-code前需要分析模块之间的依赖关系、导出的变量哪些被使用，哪些没被使用。
-还要保证代码没有副作用，才能删除掉
-**副作用会导致tree-shaking失败（babel转es5时会产生大量副作用的垃圾代码）
-可以通过`/*@__PURE__*/`声明此函数无副作用**
-参考链接：**[《你的Tree-Shaking并没什么卵用》](https://zhuanlan.zhihu.com/p/32831172)
+## usedExports 标记死代码
 
-5. **webpack 4之前只支持ES模块的使用，不支持CommonJS、只分析浅层模块导出和引入关系**
-6. **webpack 5增加了CommonJS风格模块代码的静态分析功能、支持嵌套引入模块的依赖分析优化
+**收集无用代码并标记，压缩工具借助该标记进行清除。**
+`usedExports`依赖于[terser](https://github.com/terser/terser)（webpack5内置插件`terser-webpack-plugin`）去检测语句中的**“副作用”**。
 
-**
+```javascript
+module.exports = {
+  mode: "development",
+  devtool: 'cheap-module-source-map',  // 想看到标记的无用代码，必须设值
+  optimization: {
+    usedExports: true,
+    minimize: false, // 不压缩
+  },
+};
+```
+
+打包结果，无用代码会被标记`unused harmony export has`🚩，但是仍然会被保留。
+后续通过压缩代码才能真正将无用代码删除。
+
+```javascript
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./es_module.js":
+/*!**********************!*\
+  !*** ./es_module.js ***!
+  \**********************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   get: () => (/* binding */ get)
+/* harmony export */ });
+/* unused harmony export has */ ⬅️⬅️⬅️
+// es_module get
+const get = function () {
+    console.log('get');
+};
+
+// es_module has
+const has = function () {
+    console.log('has');
+};
+  
+  
+/***/ })
+```
+
+
+
+## sideEffects 标记不要删
+
+> “副作用”的定义是，在导入时会执行特殊行为的代码，而不是仅仅暴露一个export或多个export。
+>
+> 例如`polyfill`，它影响全局作用域但不提供export。
+> 例如全局`css`，只要是被import的都会被检测。
+
+```json
+{
+  "name": "package.json文件",
+  "sideEffects": false
+}
+```
+
+如果所有代码都不包含副作用，我们就可以在`package.json`中设置属性`sideEffects: false`。
+但是对于存在副作用的也会被删除，所以我们需要告知webpack不要删除：
+
+```javascript
+// package.json
+{
+  "name": "package.json文件",
+  "sideEffects": ["./src/polyfill-file.js", "./theme.css"]
+}
+
+// 也可以配置在webpack.config.js的module.rules中
+{
+  module: {
+    // ...
+    rules:[
+      // ...
+      {
+        sideEffects: ["*.css"]
+      }
+    ]  
+  }
+}
+```
+
+
+
+## `__PURE__` 标记可以删
+
+terser很难评估函数是否有副作用，比如包内存在`iife`、`闭包`或者export出的值是通过执行了某个函数而获得的(HOC)。
+如下代码，即使不引用Button，但是`withAppProvider`也会自动执行，webpack不得不保留它。
+
+只要在函数前标记`/*#__PURE__*/`即可表示不被引用的话就是死代码，会被压缩工具清除。
+
+```javascript
+const Button$1 = withAppProvider()(Button)
+const Button$1 = /*#__PURE__*/withAppProvider()(Button) ⬅️⬅️⬅️
+
+export {
+	Button$1,
+  Input,
+  ...
+}
+```
+
+
+
+## 其他 / 原理
+
+1. **引入支持Tree Shaking的Package**
+  使用**`lodash-es`**替代**`lodash`**
+
+1. **`import *`**依然有效
+`import * as _ from "lodash-es";`
+
+2. **`JSON TreeShaking`** json未用的字段也依然有效
+`import obj from "./main.json";`
+
+4. **webpack 4之前只支持ES模块的使用，不支持CommonJS、只分析浅层模块导出和引入关系**
+
+5. **webpack 5增加了引入模块代码时的CommonJS风格的静态分析功能**
+   即`const get = require('./es_module').get` ，引入时可以用cjs风格，
+   但对应包的导出依然必须是es module风格
+
+6. **新版的Babel-loader不会造成webpack的Tree-shaking失效，**
+
+   [因为新版的不会将es转换成cjs了](https://www.bilibili.com/video/BV1oy4y1p7CC/?vd_source=7124316d1092457c652c2689962a24c1)
+
+   ```javascript
+   presets:[
+     ["@babel/preset-env", { modules: "commonjs" }] // ⚠️如果主动改为cjs的话才会导致不生效
+   ]
+   ```
+
+7. **`cherry-picking`（像采摘樱桃一样摘只要的那部分）**
+
+   业务代码已经成型，没法大动全改为esm，或者包是cjs的，可以借助babel等工具修改引入方式
+
+   - `babel-plugin-lodash`
+
+   ```javascript
+   import { sortBy } from "lodash"
+   import sortBy from "loadsh-es/sortBy"
+   ```
+
+   还有其他类似的摇树功能：
+
+   - `webpack-common-shake`
+     删除无效代码 由UglifyJS（或其他优化程序）决定 
+
+   ```javascript
+    exports.used = 1;
+    var tmp = exports.unused = 2;
+    ↓ ↓ ↓ ↓ ↓ ↓
+    exports.used = 1;
+    var tmp = 2;
+   ```
+
+   - `ant-design/babel-plugin-import` 
+
+   ```javascript
+    import { Button } from 'antd';
+    ↓ ↓ ↓ ↓ ↓ ↓
+    var _button = require('antd/lib/button');
+   ```
+
+8. **原理：[《webpack如何通过作用域分析消除无用代码》](https://www.diverse.space/2018/05/better-tree-shaking-with-scope-analysis/)**
+   相关插件：`webpack-deep-scope-analysis-plugin`
+
 # Code Spliting代码切割
 打包前开发代码
 ```javascript
@@ -247,127 +404,3 @@ self["webpackHotUpdate"](0, {
   },
 });
 ```
-
-
-
-# 《通过Tree Shaking（摇树）来减少Javascript载荷》[1]
-
-#### 1.什么是Tree Shaking（摇树）？
-
-`Tree Shaking`是消除死代码的一种形式，该术语由Rollup推广
-
-```diff
-- import arrayUtils from 'array-utils';
-+ import { unique, implode } from 'array-utils'
-```
-
-#### 2.防止Babel将ES6模块转换为CommonJS模块
-
-`.babelrc`或`package.json`配置babel-preset-env不使用ES6模块,
-它会自动完成ES模块转换为CommonJS模块（即最终为`require`而不是`import`）
-
-```json
-{
-  "presets": [
-    ["env", {
-      "modules": false
-    }]
-  ]
-}
-```
-
-#### 3.注意副作用
-
-使用`import`引用模块可能会造成_副作用_（函数副作用）,因为`import`是值的引用，而不像`require`值的拷贝。
-_副作用_也适用于ES6模块，接受可预测输入并获得同等可预测输出 而不修改其自身范围之外的任何内容的模块
-它们是独立的_模块化_代码段。在`Webpack`中可以通过`"sideEffects": false`在`package.json`中进行指定暗示软件包及其依赖项没有_副作用_
-
-```json
-{
-  "name": "webpack-tree-shaking-example",
-  "version": "1.0.0",
-  "sideEffects": false
-}
-```
-
-或者指定特定文件没有副作用
-
-```json
-{
-  "name": "webpack-tree-shaking-example",
-  "version": "1.0.0",
-  “sideEffects”: [
-    "./src/utils/utils.js"
-  ]
-}
-```
-
-#### `/*@__PURE__*/`
-
-由于JS语法的复杂程度，webpack没有打算给JS实现**数据流分析**，所以插件无法知道一个函数调用是否具有副作用的。
-所以对于一些导出模块，如果是纯的函数调用，则需要加上`/*@__PURE__*/`注释来表明这个函数是pure的（拥有独立的域）。
-这是`uglifyjs`(一个压缩工具)使用的方法。当然也可以使用相关的babel插件进行批量添加。
-
-```javascript
-var allPass = /*#__PURE__*/_curry1(function(){
-
-})
-```
-
-#### 4.cherry-picking（像采摘樱桃一样摘只要的那部分）
-
-由于`"sideEffects"`只适用于webpack，所以在非webpack环境下需要其他方案替代
-
-- `babel-plugin-lodash`
-
-```javascript
-import { sortBy } from "lodash"
-import sortBy from "loadsh-es/sortBy"
-```
-
-还有其他类似的摇树功能：
-
-- `webpack-common-shake`
-  删除无效代码 由UglifyJS（或其他优化程序）决定 
-
-```javascript
- exports.used = 1;
- var tmp = exports.unused = 2;
- ↓ ↓ ↓ ↓ ↓ ↓
- exports.used = 1;
- var tmp = 2;
-```
-
-- `ant-design/babel-plugin-import` 
-
-```javascript
- import { Button } from 'antd';
- ↓ ↓ ↓ ↓ ↓ ↓
- var _button = require('antd/lib/button');
-```
-
-# ESModule对Tree-Shaking的优势[2]
-
-1. Webpack从2开始也支持Tree-shaking，即对于一个模块，没有被使用过的引入代码并不会被打包 
-
-```javascript
- import {isNumber, isString} from 'loadsh-es';
-
- isNumber(123);
-
- //最总isString代码不会被打包
-```
-
-2. **原理**
-   相对于CommonJS，ESModule对静态分析更友好，
-   通过**作用域分析**(scope analysis)可以知道引用后的模块哪些被用了哪些没被用，从而可以忽略未被使用的。
-   在2之前可以使用插件`webpack-deep-scope-analysis-plugin`
-   详见 [https://segmentfault.com/n/1330000021783419#articleHeader20](https://segmentfault.com/n/1330000021783419#articleHeader20)
-3. Babel不会造成webpack的Tree-shaking失效
-   https://www.bilibili.com/video/BV1oy4y1p7CC/?vd_source=7124316d1092457c652c2689962a24c1
-
-# 参考
-
-- [1] [Reduce JavaScript Payloads with Tree Shaking](https://developers.google.com/web/fundamentals/performance/optimizing-javascript/tree-shaking)
-- [2] [webpack 如何通过作用域分析消除无用代码](https://zhuanlan.zhihu.com/p/43844419)
-
