@@ -1,10 +1,11 @@
 import babel from "rollup-plugin-babel";
+import json from '@rollup/plugin-json';
 
 export default [
   {
-    input: "main.js",
+    input: "src/index.js",
     output: {
-      file: "bundle.js",
+      file: "dist/bundle-rollup.js",
       sourcemap: false,
       format: "umd",
     },
@@ -14,6 +15,7 @@ export default [
         runtimeHelpers: true,
         presets: ["@babel/preset-env"],
       }),
+      json()
     ],
   },
 ];
