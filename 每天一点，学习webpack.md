@@ -238,6 +238,10 @@ terser很难评估函数是否有副作用，比如包内存在`iife`、`闭包`
 只要在函数前标记`/*#__PURE__*/`即可表示不被引用的话就是死代码，会被压缩工具清除。
 
 ```javascript
+function withAppProvider(){
+  return function(){}
+}
+
 const Button$1 = withAppProvider()(Button)
 const Button$1 = /*#__PURE__*/withAppProvider()(Button) ⬅️⬅️⬅️
 
@@ -250,7 +254,36 @@ export {
 
 
 
-## 其他 / 原理
+## uglify 代码压缩
+
+JS的代码压缩原理
+
+1. 将code转换成AST
+2. 将AST进行优化，生成一个更小的AST
+3. 将新生成的AST再转化成code
+
+分号转逗号的规则
+
+1. **表达式语句**分号会被转换为都好
+2. **声明语句**分号不会被转换
+
+
+
+## 原理：作用域分析
+
+> 作用域分析：分析代码里面变量所属的作用域以及他们之间的引用关系，
+> 有了这些信息，就可以推导出**导出变量**和**导入变量**之间的引用关系。
+>
+> 相关文章：**[《webpack如何通过作用域分析消除无用代码》](https://www.diverse.space/2018/05/better-tree-shaking-with-scope-analysis/)**
+> 相关插件：`webpack-deep-scope-analysis-plugin`
+
+
+使用**作用域分析**优化多层级的tree-shaking
+webpack可以通过`entry`和`module`之间的调用得知对于一个`module`来说，哪些变量是会被使用到的`Input{Used:{scope1}}`
+
+
+
+## 其他
 
 1. **引入支持Tree Shaking的Package**
   使用**`lodash-es`**替代**`lodash`**
@@ -258,16 +291,21 @@ export {
 1. **`import *`**依然有效
 `import * as _ from "lodash-es";`
 
+3. **`export default all`是不明智的**
+  对于ES6模块来说，会有**_default export_**和**_named export_**的区别。
+  **_default export_**在概念上仅仅把一个名字叫default的export出来，
+  像上述把一切东西都塞到default里面是一个错误的选择。
+
 2. **`JSON TreeShaking`** json未用的字段也依然有效
 `import obj from "./main.json";`
 
-4. **webpack 4之前只支持ES模块的使用，不支持CommonJS、只分析浅层模块导出和引入关系**
+5. **webpack 4之前只支持ES模块的使用，不支持CommonJS、只分析浅层模块导出和引入关系**
 
-5. **webpack 5增加了引入模块代码时的CommonJS风格的静态分析功能**
+6. **webpack 5增加了引入模块代码时的CommonJS风格的静态分析功能**
    即`const get = require('./es_module').get` ，引入时可以用cjs风格，
    但对应包的导出依然必须是es module风格
 
-6. **新版的Babel-loader不会造成webpack的Tree-shaking失效，**
+7. **新版的Babel-loader不会造成webpack的Tree-shaking失效，**
 
    [因为新版的不会将es转换成cjs了](https://www.bilibili.com/video/BV1oy4y1p7CC/?vd_source=7124316d1092457c652c2689962a24c1)
 
@@ -277,7 +315,7 @@ export {
    ]
    ```
 
-7. **`cherry-picking`（像采摘樱桃一样摘只要的那部分）**
+8. **`cherry-picking`（像采摘樱桃一样摘只要的那部分）**
 
    业务代码已经成型，没法大动全改为esm，或者包是cjs的，可以借助babel等工具修改引入方式
 
@@ -309,8 +347,6 @@ export {
     var _button = require('antd/lib/button');
    ```
 
-8. **原理：[《webpack如何通过作用域分析消除无用代码》](https://www.diverse.space/2018/05/better-tree-shaking-with-scope-analysis/)**
-   相关插件：`webpack-deep-scope-analysis-plugin`
 
 # Code Spliting代码切割
 打包前开发代码
@@ -404,3 +440,10 @@ self["webpackHotUpdate"](0, {
   },
 });
 ```
+
+
+
+# Plugin
+
+# Loader
+
