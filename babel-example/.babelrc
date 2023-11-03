@@ -16,6 +16,7 @@
       {
         "corejs": 3
       }
-    ]
+    ],
+    "./babel-plugin-import.js"
   ]
 }
