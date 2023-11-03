@@ -235,7 +235,7 @@ const has = function () {
 terser很难评估函数是否有副作用，比如包内存在`iife`、`闭包`或者export出的值是通过执行了某个函数而获得的(HOC)。
 如下代码，即使不引用Button，但是`withAppProvider`也会自动执行，webpack不得不保留它。
 
-只要在函数前标记`/*#__PURE__*/`即可表示不被引用的话就是死代码，会被压缩工具清除。
+只要在函数前标记`/*#__PURE__*/`（也可以写成`/*@__PURE__*/`）即可表示不被引用的话就是死代码，会被压缩工具清除。
 
 ```javascript
 function withAppProvider(){
