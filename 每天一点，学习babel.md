@@ -341,9 +341,36 @@ core-js的api不再是**全局引入**，而是变成了**模块化引入**。
 
 # 实例：babel-plugin-import
 
-`Tree Shaking`的一种手动实现方式(cherry-picking)
+`Tree Shaking`的一种手动实现方式(cherry-picking)。
 
+```javascript
+visitor: {
+  Program: {
+    enter(path){
+      path.traverse({
+        ImportDeclaration(path) {
+          // import { Button } from 'antd'
+          // ⬇️ ⬇️ ⬇️
+          // import Button from 'antd/lib/button'
+          path.replaceWith()
+        }
+      })
+    },
+    exit(){
+      
+    }
+  }
+}
+```
 
+babel还可以做：
+
+1. 自动埋点-函数插桩
+2. 自动国际化
+3. 注释 - 自动生成文档
+   `path.getTypeAnnotation()`
+
+具体多参考`@babel/types`的api
 
 # babel-plugin-tester
 

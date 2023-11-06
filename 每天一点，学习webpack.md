@@ -1,6 +1,50 @@
-> 代码参考：[https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack](https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack)
+# webpack和gulp区别
+
+gulp、Grunt、RequireJS、Browserify等
+或简单合并执行多种构建任务；
+或聚焦于模块化方案的兼容处理；
+或仅仅实现JavaScript层面的工程化（合并、压缩、混淆）能力。
+缺乏一个能兼容所有不同类型文件的消息互通。
+
+而Webpack则忽略具体资源类型之间的差异，将所有代码/非代码文件**统一看作Module**——
+**模块对象**，以相同的加载、解析、依赖管理、优化、合并流程实现打包，
+并借助**Loader、Plugin两种开放接口将资源差异处理逻辑转交由社区实现**，实现**统一资源构建模型**。
+
+优点：
+
+- 所有资源都是Module，所以可以用同一套代码实现诸多特性，包括：
+  代码压缩、Host Module Replacement、缓存等；
+- 打包时，资源与资源之间非常容易实现信息互换，例如：
+  可以轻易在HTML插入Base64格式的图片；
+- 借助Loader，Webpack几乎可以用任意方式处理任意类型的资源，例如：
+  用Less、Stylus、Sass等预编译CSS代码。
+
+# 为什么要学Webpack
+
+每次遇到需要解决眼下具体问题时，翻阅资料和debug会耗费大量时间；
+
+沉下心研读源码，才能理解内里的乾坤，通过调整配置自定义Loader/Plugin能迅速解决问题；
+
+这种能力持续沉淀，就能逐渐成为我和其他同事非常重要的竞争力。
+
+# webpack.config.js 配置项
+
+> [Configuration](https://webpack.js.org/configuration/)
+
+🚩webpack首先需要根据输入配置（`entry`/`context`）找到项目入口文件；
+
+之后根据按模块处理（`module`/`resolve`/`externals`等）所配置的规则逐一处理模块文件，
+处理过程包括转译、依赖分析等；
+
+模块处理完毕后，最后根据后处理相关配置项（`optimization`/`target`等）合并模块资源、
+注入运行时以来、优化产物结构等。🚩
+
+![webpack.config.js](./assets/webpack.config.js.png)
 
 # CommonJS模块打包
+
+> 代码参考：[https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack](https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack)
+
 打包前开发代码
 ```javascript
 // sum.js
@@ -286,15 +330,15 @@ webpack可以通过`entry`和`module`之间的调用得知对于一个`module`�
 ## 其他
 
 1. **引入支持Tree Shaking的Package**
-  使用**`lodash-es`**替代**`lodash`**
+    使用**`lodash-es`**替代**`lodash`**
 
 1. **`import *`**依然有效
 `import * as _ from "lodash-es";`
 
 3. **`export default all`是不明智的**
-  对于ES6模块来说，会有**_default export_**和**_named export_**的区别。
-  **_default export_**在概念上仅仅把一个名字叫default的export出来，
-  像上述把一切东西都塞到default里面是一个错误的选择。
+    对于ES6模块来说，会有**_default export_**和**_named export_**的区别。
+    **_default export_**在概念上仅仅把一个名字叫default的export出来，
+    像上述把一切东西都塞到default里面是一个错误的选择。
 
 2. **`JSON TreeShaking`** json未用的字段也依然有效
 `import obj from "./main.json";`
@@ -442,6 +486,88 @@ self["webpackHotUpdate"](0, {
 ```
 
 
+
+# Module Federation 模块联邦
+
+- 应用可按需导出，这些模块最终会被打包成模块包，类似npm模块；
+- 应用可在运行时基于HTTP(S)协议动态加载其他应用暴露的模块，
+  且用法与动态加载普通NPM模块`import()`一样简单；
+- 与其他微前端方案不同，MF的应用之间关系平等，没有主应用/子应用之分，
+  每个应用都能导出/导入任意模块；
+
+## 远程（输出方）
+
+`exposes`曝光指定模块文件
+
+```javascript
+const { ModuleFederationPlugin } = require("webpack").container;
+
+plugin: {
+  new ModuleFederationPlugin({
+    name: "app1",		// 定义import一级模块名称
+    fileName: "remoteEntry.js", // 生成打包文件的名称
+    exposes: {
+      "./utils": "./src/utils" // 定义二级模块名称
+    }
+  })
+}
+```
+
+## 主机（引用方）
+
+`remotes` + `await import()`加载http模块
+
+```javascript
+// webpack.config.js
+plugin: {
+  new ModuleFederationPlugin({
+    remotes: {
+      // key还可以再自定义一级模块名称
+      app1: "app1@http://localhost:8081/dist/remoteEntry.js", // 生产模式改为cdn地址
+    }
+  })
+}
+
+// src/index.js
+const { sayHello } = await import("app1/utils");
+sayHello();
+```
+
+## 依赖共享（微前端架构）
+
+`shared`依赖共享
+两边都配置shared，就可以共享一个`vendors-node_modules_xxx.js`代码
+前提是版本一致（可以通过`requiredVersion`设置区间版本，这样差小版本的话也可以共享）
+
+```javascript
+const deps = require("./package.json").dependencies;
+
+// react微前端应用——路由模块联邦
+new ModuleFederationPlugin({
+  // 两边都要设置相同的shared
+  shared: {
+    react: {
+      singleton: true, // 如果版本不满足就警告
+      requiredVersion: deps.react,
+    },
+    "react-dom": {
+      singleton: true,
+      requiredVersion: deps["react-dom"],
+    },
+    "react-router-dom": {
+      singleton: true,
+      requiredVersion: deps["react-router-dom"],
+    },
+  },
+}),
+```
+
+微前端的难点：
+
+1. 多应用通信
+   可以借助发布订阅模式+单例store，比如rxjs
+2. MF实现的微前端架构并未提供沙箱能力，
+   比如js/css未隔离
 
 # Plugin
 

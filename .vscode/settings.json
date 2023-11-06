@@ -1,0 +1,21 @@
+{
+  "eslint.validate": ["javascript", "javascriptreact", "html"],
+  "search.exclude": {
+    "**/reports": true
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": false
+  },
+  "path-intellisense.mappings": {
+    "@": "${workspaceRoot}/src"
+  },
+  "workbench.editor.enablePreview": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}
