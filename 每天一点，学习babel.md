@@ -43,6 +43,8 @@ babel最开始的名字叫6to5，主要是做es6到es5语法的转换和polyfill
 
 AST可视化查看工具：https://astexplorer.net/
 
+Babel查看编译结果：https://babeljs.io/repl
+
 ## ESTree标准
 
 Q：为什么ESLint可以检查和修复格式问题，而Babel不可以❓

@@ -573,3 +573,154 @@ new ModuleFederationPlugin({
 
 # Loader
 
+> https://webpack.docschina.org/loaders/
+
+## 样式 style-loader
+
+- `css-loader`让webpack识别`.css`文件
+  改loader会将CSS等价翻译为形如`module.exports = "${css}"`的JavaScript代码，
+  使得Webpack能够如同处理JS代码一样解析CSS内容与依赖资源
+
+- `style-loader` runtime代码注入（**运行时使用js生成style代码**）🚩，根据`injectType`决定styles插入到DOM中的方式
+
+  ```javascript
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.css$/i,
+          use: ["style-loader", "css-loader"], // 根据loader倒叙执行顺序，style-loader在前
+          // test: /\.less$/i,
+          // use: ["style-loader", "css-loader", "less-loader"] // 有预处理器的写在最后
+        },
+      ],
+    },
+  };
+  ```
+
+  上述配置语义上相当于`style-loader(css-loader(.css))`链式调用，执行后样式代码：
+
+  ```javascript
+  // Part1: css-loader 处理结果，对标到原始 CSS 代码
+  const __WEBPACK_DEFAULT_EXPORT__ = (
+  "body {\n    background: yellow;\n    font-weight: bold;\n}"
+  );
+  // Part2: style-loader 处理结果，将 CSS 代码注入到 `style` 标签
+  const injectStylesIntoStyleTag = require("./node_modules/style-loader/dist/runtime/injectStylesIntoStyleTag.js");
+  injectStylesIntoStyleTag(
+   __WEBPACK_DEFAULT_EXPORT__
+  )
+  ```
+
+  
+
+- `mini-css-extract-plugin` 
+  构建期间生成CSS文件，并借助html-webpack-plugin将文件通过`<link>`标签方式插入到页面中。
+  优点：
+
+  1. JS、CSS资源分离，实现<u>**并行加载**</u>，提高页面性能； 
+  2. <u>**资源缓存粒度降低**</u>，变更CSS（或内容膨胀）不影响生成的JS打包产物
+
+  缺点：
+
+  1. 不支持热更新🚩
+     建议`production`模式时才使用
+     `development`模式时使用`style-loader`以支持热更新
+
+  ```javascript
+  const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+  const HtmlWebpackPlugin = require('html-webpack-plugin');
+  
+  module.exports = {
+    module: {
+      rules: [
+        {
+          test: /\.css$/i,
+          use: [
+            (process.env.NODE_ENV === 'development' ?
+               'style-loader' : // 开发阶段使用style-loader，支持hmr
+               MiniCssExtractPlugin.loader // ⚠️不要和style-loader同时使用
+            ),
+            "css-loader"
+          ],
+        },
+      ],
+    },
+    plugins: [
+      new MiniCssExtractPlugin({
+        filename: '[name].[contenthash].css',
+      }),
+      new HtmlWebpackPlugin(), // 必须同时使用hwp才能将产物以 link 标签方式插入到html中
+    ]
+  };
+  ```
+
+## PostCSS
+
+PostCss既不是后处理器也不是预处理器，不像Less/Sass/Stylus那样定义一套超集语言，
+**而是与`@babel/core`类型，实现一套将CSS源码解析为AST结构，并开发API支持编写插件来进行分析和修改，**
+丰富原生CSS、支持低版本编译、支持代码压缩等。
+
+> 预处理器之于CSS，就像 TypeScript 与JavaScript的关系；
+> 而 PostCSS 之于CSS，则更像 Babel 与JavaScript。
+
+流行的PostCSS插件
+
+```javascript
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          "style-loader", 
+          "css-loader",
+          {
+            loader: "postcss-loader",
+            options: {
+              postcssOptions: {
+               plugins: [
+                 require("autoprefixer"), // 自动添加浏览器前缀
+                 require("cssnano"), // 压缩css
+                 
+                 // 预设环境集合，包含了autoprefixer
+                 require("postcss-preset-env")({ stage: 1 })
+               ],
+              },
+            },
+          }
+        ],
+      },
+    ],
+  }
+};
+```
+
+- `postcss-import` 允许将CSS文件导入其他文件
+
+  ```css
+  @import './theme.css'
+  ```
+
+- `autoprefixer` 自动添加浏览器前缀
+  通过package.json的browserslist配置定位需要兼容的浏览器
+
+  ```css
+  // 之前
+  ::placeholder {}
+  
+  // 之后
+  ::-moz-placeholder {
+    
+  }
+  :-ms-input-placeholder {
+    
+  }
+  ::placeholder {
+    
+  }
+  
+  ```
+
+  
+
