@@ -575,7 +575,7 @@ new ModuleFederationPlugin({
 
 > https://webpack.docschina.org/loaders/
 
-## 样式 style-loader
+## style-loader 样式
 
 - `css-loader`让webpack识别`.css`文件
   改loader会将CSS等价翻译为形如`module.exports = "${css}"`的JavaScript代码，
@@ -724,3 +724,73 @@ module.exports = {
 
   
 
+## file-loader 图像加载原理
+
+在Webpack中，图像以及其他多媒体资源都被提升为一等公民——只能通过`import`/`requre()`导入模块的方式引用。
+所以需要使用loader进行模块转换成html能理解的代码。由于这类loader使用频率非常高，在webpack5中直接内置
+
+```diff
+- <img src="../assets/avatar.png"
++ <img src={require("@/assets/avatar.png")}
+```
+
+**`file-loader`**：将图像引用转换为url语句并在打包时生成相应图片文件。
+
+```javascript
+module: {
+  rules: [{
+    test: /\.(png|jpg)$/,
+    use: ['file-loader'] // webpack4
+    type: 'asset/resource' // webpack5内置
+  }],
+}
+
+// 最终会生成以下URL地址
+// module.exports = __webpack_require__.p + "35f56d38f35789b35e76.png";
+```
+
+**`url-loader`**：小于配置的阈值`limit`的图像直接转化为`base64`编码；大于则调用`file-loader`加载
+
+```javascript
+module: {
+  rules: [
+    // ⚠️ file-loader一定要在url-loader之前，否则url-loader将失效
+    {use:['file-loader']},
+    {
+      test: /\.(png|jpg)$/,
+      use: [{
+        loader: 'url-loader',// webpack4
+        options: { limit: 1024 }
+      }],
+      // webpack5
+      type: "asset",
+      parser: {
+        dataUrlCondition: {
+          maxSize: 1024 // 1kb
+        }
+      }
+    }
+  ],
+}
+
+// 最终生成base64
+// module.exports = "data:image/png;base64,xxxx"
+```
+
+**`raw-loader`**常用于处理**SVG资源文件**直接复制成**字符串**形式注入到DOM中
+
+```javascript
+module: {
+  rules: [{
+    test: /\.(svg)$/,
+    use: ['raw-loader'] // webpack4
+    type: 'asset/source' // webpack5内置
+  }],
+}
+```
+
+其他：
+
+- `image-webpack-loader`**图片压缩**（非常耗时，建议区分生产环境中开启）
+- `webpack-spritesmith`指定target目标文件进行合成**雪碧图**（HTTP2实现TCP多路复用可以替代雪碧图优化）
+- `responsive-loader`**响应式图片**（根据css @media自动生成对应图片）
