@@ -1,3 +1,5 @@
+> 《[Webpack5 核心原理与应用实践](https://juejin.cn/book/7115598540721618944)》
+
 # webpack和gulp区别
 
 gulp、Grunt、RequireJS、Browserify等
@@ -40,6 +42,21 @@ gulp、Grunt、RequireJS、Browserify等
 注入运行时以来、优化产物结构等。🚩
 
 ![webpack.config.js](./assets/webpack.config.js.png)
+
+## env 环境治理策略
+
+- **开发环境**需要使用`webpack-dev-server`实现热更新;
+
+- **测试环境**需要带上完整的`Sourcemap`，以帮助更新定位问题；
+
+- **生产环境**需要尽可能打包出**更快、更小**、更好的应用代码，确保用户体验。
+
+  ```bash
+  // --config 选项指定配置目标
+  npx webpack --config webpack.prod.js
+  ```
+
+  
 
 # CommonJS模块打包
 
@@ -657,7 +674,7 @@ new ModuleFederationPlugin({
 
 ## PostCSS
 
-PostCss既不是后处理器也不是预处理器，不像Less/Sass/Stylus那样定义一套超集语言，
+PostCSS既不是后处理器也不是预处理器，不像Less/Sass/Stylus那样定义一套超集语言，
 **而是与`@babel/core`类型，实现一套将CSS源码解析为AST结构，并开发API支持编写插件来进行分析和修改，**
 丰富原生CSS、支持低版本编译、支持代码压缩等。
 
@@ -730,11 +747,16 @@ module.exports = {
 所以需要使用loader进行模块转换成html能理解的代码。由于这类loader使用频率非常高，在webpack5中直接内置
 
 ```diff
++ import url from '@assets/avatar.png'
+
 - <img src="../assets/avatar.png"
++ <img src={url} />
+
 + <img src={require("@/assets/avatar.png")}
 ```
 
-**`file-loader`**：将图像引用转换为url语句并在打包时生成相应图片文件。
+**`file-loader`**：将图像引用转换为url语句并在打包时生成相应图片文件;
+对标webpack5的**`type: 'asset/resource'`**
 
 ```javascript
 module: {
@@ -749,7 +771,8 @@ module: {
 // module.exports = __webpack_require__.p + "35f56d38f35789b35e76.png";
 ```
 
-**`url-loader`**：小于配置的阈值`limit`的图像直接转化为`base64`编码；大于则调用`file-loader`加载
+**`url-loader`**：小于配置的阈值`limit`的图像直接转化为`base64`编码；大于则调用`file-loader`加载；
+对标webpack5的**`type: 'asset'`**
 
 ```javascript
 module: {
@@ -777,7 +800,8 @@ module: {
 // module.exports = "data:image/png;base64,xxxx"
 ```
 
-**`raw-loader`**常用于处理**SVG资源文件**直接复制成**字符串**形式注入到DOM中
+**`raw-loader`**常用于处理**SVG资源文件**直接复制成**字符串**形式注入到DOM中；
+对标webpack5的**`type: 'asset/source'`**
 
 ```javascript
 module: {
@@ -789,8 +813,149 @@ module: {
 }
 ```
 
-其他：
+**`type: 'javascript/auto'`**：当在webpack5中存在旧的assets loader和新的type asset资源模块，可能会导致重复处理，
+可以在旧loader下添加解决
+
+```javascript
+module: {
+  rules: [
+    {
+      test: /\.(png)$/,
+      use: ['file-loader'] ,
+      type: 'javascript/auto'
+    },
+    {
+      test: /\.(png)$/,
+      type: 'asset'
+    }
+  ],
+}
+```
+
+
+
+其他图像优化方案：
 
 - `image-webpack-loader`**图片压缩**（非常耗时，建议区分生产环境中开启）
 - `webpack-spritesmith`指定target目标文件进行合成**雪碧图**（HTTP2实现TCP多路复用可以替代雪碧图优化）
 - `responsive-loader`**响应式图片**（根据css @media自动生成对应图片）
+
+
+
+## cache-loader 构建缓存
+
+> https://webpack.docschina.org/configuration/cache/
+
+**首次构建时缓存**webpack生成的`Module`/`ModuleGraph`/`Chunk`模块，来改善构建速度。
+
+🚩webpack5已内置`cache`配置项，比`cache-loader`缓存粒度更小
+
+```javascript
+module.exports = {
+  cache: {
+    type: 'filesystem',
+    
+    // 缓存文件路径
+    cacheDirectory: '默认为 node_modules/.cache/webpack',
+    
+    // 当这些文件内容发生变化时，缓存会完全失效而执行完整的编译构建
+    buildDependencies: {
+      config: [
+        // 通常可设置为各种配置文件
+        path.join(__dirname, 'webpack.dll_config.js'),
+        path.join(__dirname, '.babelrc')
+      ],
+    }
+  },
+  
+  // memory模式，生产模式中被禁用，常用于开发模式
+  cache: {type: 'memory'},
+  cache: true, // 同上
+}
+```
+
+webpack4之前版本需要使用社区维护的`cache-loader`
+
+- 只缓存**Loader**执行结果，所以要写在所有loader之前
+- 其他组件自带的缓存能力，如`babel-loader`、`eslint-webpack-plugin`(官方不推荐用eslint-loader了)、`stylelint-webpack-plugin`
+
+```javascript
+// webpack4
+module: {
+  rules: [{
+    test: /\.js$/,
+    use: ['cache-loader', 'babel-loader', 'eslint-loader'],
+    // babel-loader自带有缓存能力
+    // use:['babel-loader?cacheDirectory=true']
+  }],
+}
+```
+
+`hard-source-webpack-plugin`也是一种实现缓存功能的第三方插件。与`cache-loader`不同的是，
+它不仅仅缓存了Loader运行结果，还保存了Webpack构建过程中许多中间数据，包括：
+模块(Module)、模块关系(ModuleGraph)、模块Resolve结果、Chunks、Assets等，效果几乎和Webpack5自带的`cache`对齐。
+
+```javascript
+const HardSourceWebpackPlugin = require("hard-source-webpack-plugin");
+
+module.exports = {
+  // ...
+  plugins: [
+    new HardSourceWebpackPlugin(),
+  ],
+};
+```
+
+### 原理
+
+![webpack构建过程](./assets/webpack构建过程.png)
+
+1. 初始化：根据配置信息设置内置的各类插件
+2. Make - 构建阶段，从`entry`模块开始，执行：
+   - 读入文件内容；
+   - 调用Loader转译文件内容；
+   - 调用acorn生成AST结构；
+   - 分析AST，确定模块依赖列表；
+   - 遍历模块依赖列表，对每一个依赖模块重新执行上述流程，直到生成完整的模块依赖图
+     —— `ModuleGraph`对象
+3. Seal - 生成阶段，过程：
+   - 遍历ModuleGraph，对每一个模块执行：
+     - 代码转移，如`import`转换为`require`调用；
+     - 分析运行时依赖
+   - 合并模块代码与运行时代码，生成`chunk`;
+   - 执行产物优化操作，如`Tree-shaking`；
+   - 将最终结果写出到产物文件。
+
+过程中存在许多CPU密集型操作，例如调用Loader链加载文件时，遇到babel-loader、ts-loader等工具时可能需要重复生成AST；
+分析模块依赖则需要遍历AST，执行大量运算。
+
+假设业务项目中有1000个文件，则每次执行`npx webpack`命令时，都需要从0开始执行1000次构建、生成逻辑。
+
+缓存功能则将构建结果保存在文件系统中，在下次编译时对比每一个文件的内容哈希或时间戳，未发生变化的文件跳过编译操作，直接使用缓存副本，减少重复计算。
+发生变更的模块则重新执行编译结果。
+
+### 缺点
+
+> https://github.com/webpack/changelog-v5/blob/master/guides/persistent-caching.md
+
+Webpack始终将安全性置于性能之上，所以默认设置为`cache: false`，原因是某些操作下会使缓存失效：
+
+- 升级loder或plugin依赖版本时
+- 更改webpack.config.js/.babelrc等配置文件时
+- 更改script命令参数时
+
+🚩所以需要增加`buildDependencies`配置项主动告知某些操作下需要重新构建缓存
+
+为缓存设置版本`cache.version`或名字`cache.name`也可以触发更新缓存
+
+```javascript
+module.exports = {
+  cache: {
+    version: `${process.env.GIT_REV}`,
+    name: `${process.env.target}` // 命令行参数 --env.target mobile|desktop
+  }
+}
+```
+
+
+
