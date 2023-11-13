@@ -43,6 +43,8 @@ gulp、Grunt、RequireJS、Browserify等
 
 ![webpack.config.js](./assets/webpack.config.js.png)
 
+
+
 ## env 环境治理策略
 
 - **开发环境**需要使用`webpack-dev-server`实现热更新;
@@ -56,7 +58,80 @@ gulp、Grunt、RequireJS、Browserify等
   npx webpack --config webpack.prod.js
   ```
 
-  
+
+
+
+## Analysis 性能分析工具
+
+- **`profile: true`**
+  webpack内置的[Stats Data](https://webpack.docschina.org/api/stats/)统计工具，在打包时可选择生成统计报告（webpack serve过程中不生成）
+
+  ```bash
+  npx webpack --profile --json=compilation-stats.json
+  ```
+
+- **Webpack Analysis** 
+  stats.json在线可视化工具：https://webpack.github.io/analyse/
+
+- **UnusedWebpackPlugin** <u>打包时</u>生成无用文件分析报告
+  开发阶段使用`webpack-deadcode-plugin`可以在启动命令时输出
+
+
+
+## HappyPack 并行构建
+
+受限于Node.js的**单线程架构**，webpack所有操作都是在同一线程内串行执行，CPU利用率极低。
+
+HappyPack能过将耗时的**文件加载（Loader）**操作拆散到多个子进程中并发执行，
+子进程执行完毕后再将结果合并回传到Webpack进程，从而提升构建性能。
+⚠️不过使用成本较高，需要把之前的loader序列改为`happypack/loader`
+
+```diff
+module: {
+  rules: [
+    {
+      test: /\.js$/,
++      use: "happypack/loader?id=js",
+-      use: [{
+-        loader: 'babel-loader',
+-        options: {
+-          presets: ['@babel/preset-env']
+-        }
+-      }]
+    }
+  ]
+}
+
+plugins: [
++  new HappyPack({
++    id: 'js',
++    loaders: ['babel-loader?cacheDirectory'],
++    threads: 6,
++  }),
+]
+```
+
+
+
+## Terser 并行压缩
+
+Webpack4默认使用**`uglifyjs-webpack-plugin`**实现代码压缩，Webpack5之后则升级为**`terser-webpack-plugin`**。
+Terser是在UglifyJS基础上增加了ES6语法支持，并重构代码解析、压缩算法，提高执行效率和压缩率。
+
+```javascript
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = {
+    optimization: {
+        minimize: true,
+        minimizer: [new TerserPlugin({
+            parallel: 2 // 最大并行进程数为2
+        })],
+    },
+};
+```
+
+
 
 # CommonJS模块打包
 
@@ -199,7 +274,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 `Tree Shaking`是一个术语，通常用于描述移除JavaScript上下文中的未引用代码(`dead-code`)。
 它依赖于ES Module语法`import`和`export`的静态结构特性，由`rollup`普及起来的。
 
-webpack在**压缩阶段**借助`UglifyJS`移除dead-code的。
+🚩webpack是在**压缩阶段**移除dead-code的，所以要开启`optimization.minimize: true`才能生效。
 
 ## usedExports 标记死代码
 
@@ -315,7 +390,7 @@ export {
 
 
 
-## uglify 代码压缩
+## 代码压缩
 
 JS的代码压缩原理
 
@@ -585,6 +660,10 @@ new ModuleFederationPlugin({
    可以借助发布订阅模式+单例store，比如rxjs
 2. MF实现的微前端架构并未提供沙箱能力，
    比如js/css未隔离
+
+# Chunk
+
+
 
 # Plugin
 
