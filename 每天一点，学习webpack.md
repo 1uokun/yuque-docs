@@ -661,11 +661,79 @@ new ModuleFederationPlugin({
 2. MF实现的微前端架构并未提供沙箱能力，
    比如js/css未隔离
 
-# Chunk
-
-
-
 # Plugin
+
+## SplitChunksPlugin（chunk分包）
+
+> https://webpack.docschina.org/plugins/split-chunks-plugin/
+
+Chunk 是 Webpack **模块分包**到最终输出打包产物过程中的策略设计代词，有3种类型的Chunk对象：
+
+1. **`Initial Chunk`**：`entry`模块以及相应子模块在遍历构建(Make)阶段打包；
+2. **`Async Chunk`**：遇到异步模块`import('./xx')`时，创建新的Chunk对象；
+3. **`Runtime Chunk`**：**运行时**代码抽离成Runtime Chunk，可通过`entry.runtime`配置项实现。
+
+Chunk分包结果的好坏直接影响最终应用性能（CPU：首屏渲染，IO：资源缓存粒度），仅依靠上面3个策略会有以下问题：
+
+1. **模块重复打包**
+   多个Chunk同时依赖同一个Module，那么这个Module会被不受限制地重复打包进这些Chunk
+2. **资源冗余 & 低效缓存**
+   `entry`通常只会设置1个，导致资源冗余
+   业务代码频繁变动而第三方库资源(`node_modules`依赖)变动较少无法区分，导致低效缓存
+
+为此，Webpack4开始内置`SplitChunksPlugin`（Webpack3使用`CommonsChunkPlugin`）插件实现灵活可配置的分包。
+配置项：`optimization.splitChunks`
+
+```javascript
+module.exports = {
+  //...
+  optimization: {
+    splitChunks: {
+      // 作用范围
+      chunks: 'async'(默认) | 'initial' | 'all'(建议),
+      // Module被Chunk引用的次数决定是否分包
+      minChunks: 1(默认),
+
+      // 分包数量
+      maxInitialRequest: 30, // 设置Initial Chunk最大并行请求数
+      maxAsyncRequest: 30, // Async Chunk最大并行请求数
+      
+      // 分包体积
+      minSize: 2000(bytes,默认20kb), // 限制chunk最小尺寸，避免分包过多
+      maxSize: 0, // 会同时生效于 maxAsyncSize 和 maxInitialSize
+      
+      // vendor缓存组（不常更新）🚩
+      cacheGroups: {
+        // 将所有node_modules中的资源单独打包到`vendors-node_modules_xx.js`
+        defaultVendors: {
+          idHint: "vendors", // 文件名前缀
+          reuseExistingChunk: true,
+          test: /[\\/]node_modules[\\/]/i,
+          priority: -10
+        },
+        // 引用次数大于等于2的模块单独打包`common-xx.js`
+        default: {
+          idHint: "common",
+          chunks: "all",
+          minChunks: 1,
+          minSize: 1,
+          reuseExistingChunk: true,
+        },
+      }
+    },
+  },
+}
+```
+
+Q`minChunk`：**如何理解“被Chunk引用次数”？**🚩
+A：不直接等价于被`import`的次数，而是取决于上游调用者是否被视作Initial Chunk或Async Chunk处理
+      如被entry1的Initial Chunk引用、entry2的Initail Chunk引用、entry1内的异步模块Async Chunk引用，这就等于被引用了3次
+
+Q`maxInitialRequest`：**如何理解“并行请求数”？**🚩
+A：单此请求需要加载的Chunk分包数量，打包时会计算如果超过则会限制**体积较小的包**分出来，优先级高于`minChunk`
+      完整的优先级：`minChunk`<`maxInitialRequest` < `maxSize` < `minSize`
+
+其他`cacheGroups`：常用策略一是单独打包`node_modules`代码（习惯称为`vendor`），二是单独打包被频繁使用的模块（习惯称为`common`）
 
 # Loader
 
