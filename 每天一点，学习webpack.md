@@ -43,7 +43,7 @@ gulp、Grunt、RequireJS、Browserify等
 
 ![webpack.config.js](./assets/webpack.config.js.png)
 
-
+# 构建性能优化📦
 
 ## env 环境治理策略
 
@@ -57,7 +57,6 @@ gulp、Grunt、RequireJS、Browserify等
   // --config 选项指定配置目标
   npx webpack --config webpack.prod.js
   ```
-
 
 
 
@@ -75,6 +74,28 @@ gulp、Grunt、RequireJS、Browserify等
 
 - **UnusedWebpackPlugin** <u>打包时</u>生成无用文件分析报告
   开发阶段使用`webpack-deadcode-plugin`可以在启动命令时输出
+
+### 监听产物体积`performance`
+
+根据经验，体积超过**`172kb`**的就要抛出警报，进行裁剪优化。
+
+```javascript
+module.exports = {
+  // ...
+  performance: {    
+    // 设置所有产物体积阈值
+    maxAssetSize: 172 * 1024,
+    // 设置 entry 产物体积阈值
+    maxEntrypointSize: 244 * 1024,
+    // 报错方式，支持 `error` | `warning` | false
+    hints: "error",
+    // 过滤需要监控的文件类型
+    assetFilter: function (assetFilename) {
+      return assetFilename.endsWith(".js");
+    },
+  },
+};
+```
 
 
 
@@ -111,9 +132,7 @@ plugins: [
 ]
 ```
 
-
-
-## Terser 并行压缩
+### Terser 并行压缩
 
 Webpack4默认使用**`uglifyjs-webpack-plugin`**实现代码压缩，Webpack5之后则升级为**`terser-webpack-plugin`**。
 Terser是在UglifyJS基础上增加了ES6语法支持，并重构代码解析、压缩算法，提高执行效率和压缩率。
@@ -131,9 +150,30 @@ module.exports = {
 };
 ```
 
+## 减少编译范围、编译步骤
 
 
-# CommonJS模块打包
+
+# 应用性能优化📖❓
+
+## Import() 动态导入
+
+## HTTP缓存优化（hash）
+
+## 外置依赖（externals）
+
+## 其他
+
+- Tree-Shaking 删除死代码
+- Scope hoisting 合并模块
+
+
+
+
+
+# 打包后代码
+
+## CommonJS模块打包
 
 > 代码参考：[https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack](https://github.com/shfshanyue/node-examples/tree/master/engineering/webpack)
 
@@ -211,7 +251,7 @@ const __webpack_require__ = (id) => {
 //entry.js
 const xxx = __webpack_require__(0);
 ```
-# ESModule模块打包
+## ESModule模块打包
 打包前开发代码
 ```javascript
 // sum.js
@@ -269,7 +309,77 @@ Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
 2. `__webpack_require__.r`
 Object.defineProperty(exports, '__esModule', { value: true });
 
-# Tree Shaking
+## Code Spliting代码切割
+
+打包前开发代码
+
+```javascript
+import("./sum").then((m) => {
+  m.default(3, 4);
+});
+```
+
+精简版本：
+
+```javascript
+/* webpack/runtime/ensure chunk */
+__webpack_require__.f = {};
+
+// JSONP chunk
+__webpack_require__.f.j = (chunkId, promises) => {
+  __webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+}
+
+// 动态加载script并监听onload
+__webpack_require__.l = ()=> {
+  script.onload
+  document.head.appendChild(script)
+}
+
+__webpack_require__.e = (chunkId) => {
+  return Promise.all(Object.keys(__webpack_require__.f).reduce((promises, key/*! .j */) => {
+    __webpack_require__.f[key](chunkId, promises);
+    return promises;
+  }, []));
+};
+
+// jsonp回调
+var chunkLoadingGlobal = self["webpackChunkyour_project"] = self["webpackChunkyour_project"] || [];
+chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
+chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
+
+// 业务代码
+__webpack_require__.e(/*! import()  */ 1)
+  .then(__webpack_require__.bind(__webpack_require__, /*! ./A 自定义的module */ 2))
+  .then(res=>{
+    console.log(res)
+  })
+  
+})();
+```
+
+async.js:
+
+```javascript
+(self["webpackChunkyour_project"] = self["webpackChunkyour_project"] || [])
+// 这里push就会执行webpackJsonpCallback动作
+  .push([[1],{
+  [moduleId]: 
+  (module, require)=> {
+    // 业务模块代码
+    const a = require('./a') // 递归balabala
+    
+    module.exports = ...
+  }
+}])
+```
+
+打包结果：
+
+1. `__webpack_require__.e`: 异步加载 chunk。该函数将使用 `document.createElement('script')` 异步加载 chunk 并封装为 `Promise`。
+2. `self["webpackChunk"].push`: JSONP cllaback，收集 modules 至 `__webpack_modules__`，并将 `__webpack_require__.e` 的 Promise 进行 resolve。
+
+# Tree Shaking 🌲
 
 `Tree Shaking`是一个术语，通常用于描述移除JavaScript上下文中的未引用代码(`dead-code`)。
 它依赖于ES Module语法`import`和`export`的静态结构特性，由`rollup`普及起来的。
@@ -390,9 +500,9 @@ export {
 
 
 
-## 代码压缩
+## 原理：作用域分析代码压缩
 
-JS的代码压缩原理
+JS的代码压缩原理：
 
 1. 将code转换成AST
 2. 将AST进行优化，生成一个更小的AST
@@ -403,9 +513,7 @@ JS的代码压缩原理
 1. **表达式语句**分号会被转换为都好
 2. **声明语句**分号不会被转换
 
-
-
-## 原理：作用域分析
+作用域分析：
 
 > 作用域分析：分析代码里面变量所属的作用域以及他们之间的引用关系，
 > 有了这些信息，就可以推导出**导出变量**和**导入变量**之间的引用关系。
@@ -419,7 +527,7 @@ webpack可以通过`entry`和`module`之间的调用得知对于一个`module`�
 
 
 
-## 其他
+## 其他：如何支持
 
 1. **引入支持Tree Shaking的Package**
     使用**`lodash-es`**替代**`lodash`**
@@ -483,103 +591,7 @@ webpack可以通过`entry`和`module`之间的调用得知对于一个`module`�
     var _button = require('antd/lib/button');
    ```
 
-
-# Code Spliting代码切割
-打包前开发代码
-```javascript
-import("./sum").then((m) => {
-  m.default(3, 4);
-});
-```
-精简版本：
-```javascript
-/* webpack/runtime/ensure chunk */
-__webpack_require__.f = {};
-
-// JSONP chunk
-__webpack_require__.f.j = (chunkId, promises) => {
-  __webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
-}
-
-// 动态加载script并监听onload
-__webpack_require__.l = ()=> {
-  script.onload
-  document.head.appendChild(script)
-}
-
-__webpack_require__.e = (chunkId) => {
-  return Promise.all(Object.keys(__webpack_require__.f).reduce((promises, key/*! .j */) => {
-    __webpack_require__.f[key](chunkId, promises);
-    return promises;
-  }, []));
-};
-
-// jsonp回调
-var chunkLoadingGlobal = self["webpackChunkyour_project"] = self["webpackChunkyour_project"] || [];
-chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
-chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
-
-// 业务代码
-__webpack_require__.e(/*! import()  */ 1)
-  .then(__webpack_require__.bind(__webpack_require__, /*! ./A 自定义的module */ 2))
-  .then(res=>{
-    console.log(res)
-  })
-  
-})();
-```
-async.js:
-```javascript
-(self["webpackChunkyour_project"] = self["webpackChunkyour_project"] || [])
-// 这里push就会执行webpackJsonpCallback动作
-  .push([[1],{
-  [moduleId]: 
-  (module, require)=> {
-    // 业务模块代码
-    const a = require('./a') // 递归balabala
-    
-    module.exports = ...
-  }
-}])
-```
-打包结果：
-
-1. `__webpack_require__.e`: 异步加载 chunk。该函数将使用 `document.createElement('script')` 异步加载 chunk 并封装为 `Promise`。
-2. `self["webpackChunk"].push`: JSONP cllaback，收集 modules 至 `__webpack_modules__`，并将 `__webpack_require__.e` 的 Promise 进行 resolve。
-# HMR热更新
-也称**热模块替换，借助**`**webpack-dev-server**`**实现**
-**实现过程：**
-
-1. 用`**memfs**`模拟node.js`**fs**`API将打包输出bundle使用内存型文件系统控制，而非真实的文件系统。
-2. 用`**chokidar**`监听文件变更，告诉webpack重新编译被修改的`**module**`
-3. 用`**ws**`通知浏览器，浏览器接收到hash，以JSONP的方式请求更新模块的chunk
-4. 🚩🚩**核心思想**🚩🚩：runtime.js内相关代码实现替换`__webpack_modules__`内指定id的模块
-粒度是module chunk，runtime.hash.js不重新请求，只变更hash
-```javascript
-// webpack 运行时代码
-const __webpack_modules__ = [
-  (module, exports, __webpack_require__) => {
-    __webpack_require__(0);
-  },
-  ...
-  // id为7
-  () => {
-    console.log("这是一号模块");
-  },
-];
-
-// HMR Chunk 代码
-// JSONP 异步加载的所需要更新的 modules，并在 __webpack_modules__ 中进行替换
-self["webpackHotUpdate"](0, {
-  7: () => {
-    console.log("这是最新的一号模块");
-  },
-});
-```
-
-
-
-# Module Federation 模块联邦
+# Module Federation 模块联邦 🔂
 
 - 应用可按需导出，这些模块最终会被打包成模块包，类似npm模块；
 - 应用可在运行时基于HTTP(S)协议动态加载其他应用暴露的模块，
@@ -663,6 +675,55 @@ new ModuleFederationPlugin({
 
 # Plugin
 
+## HotModuleReplacementPlugin（热更新）
+
+> 热模块替换 https://webpack.docschina.org/guides/hot-module-replacement/ 
+
+也称**热模块替换，借助**`**webpack-dev-server**`**实现**
+**实现过程：**
+
+1. 用`**memfs**`模拟node.js`**fs**`API将打包输出bundle使用内存型文件系统控制，而非真实的文件系统。
+2. 用`**chokidar**`监听文件变更，告诉webpack重新编译被修改的`**module**`
+3. 用`**ws**`通知浏览器，浏览器接收到hash，以JSONP的方式请求更新模块的chunk
+4. 🚩🚩**核心思想**🚩🚩：runtime.js内相关代码实现替换`__webpack_modules__`内指定id的模块
+   粒度是module chunk，runtime.hash.js不重新请求，只变更hash
+
+```javascript
+// webpack.config.js
+new webpack.HotModuleReplacementPlugin({
+  // Options...
+});
+
+
+// webpack 运行时代码
+const __webpack_modules__ = [
+  (module, exports, __webpack_require__) => {
+    __webpack_require__(0);
+  },
+  ...
+  // id为7
+  () => {
+    console.log("这是一号模块");
+  },
+];
+
+// HMR Chunk 代码
+// JSONP 异步加载的所需要更新的 modules，并在 __webpack_modules__ 中进行替换
+self["webpackHotUpdate"](0, {
+  7: () => {
+    console.log("这是最新的一号模块");
+  },
+});
+```
+
+第三方拓展
+
+- react-hot-loader
+- vue-loader
+- https://webpack.docschina.org/plugins/mini-css-extract-plugin#hot-module-reloading-hmr
+
+
+
 ## SplitChunksPlugin（chunk分包）
 
 > https://webpack.docschina.org/plugins/split-chunks-plugin/
@@ -735,6 +796,41 @@ A：单此请求需要加载的Chunk分包数量，打包时会计算如果超�
 
 其他`cacheGroups`：常用策略一是单独打包`node_modules`代码（习惯称为`vendor`），二是单独打包被频繁使用的模块（习惯称为`common`）
 
+## TerserWebpackPlugin（代码压缩）
+
+Terser是当下最为流行的ES6代码压缩工具之一，Webpack5内置默认使用`optionmization.minimiz=true`。
+必要时引入`terser-webpack-plugin`设置额外配置实现更精细的压缩功能。
+
+```javascript
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = {
+  optimization: {
+    minimize: true, // 必须为true，minimizer才有效
+    minimizer:[
+      new TerserPlugin({
+        parallel: 2, // 开启并行压缩，最大进程数为2
+        terserOptions: {
+          
+        }
+      }),
+      // 可以对特定文件单独配置
+      new TerserPlugin({
+        test: /foo\.js$/i,
+        extractComments: true, // 代码中的备注打包成单独文件，比如@license备注
+      })
+    ]
+  }
+};
+```
+
+其他压缩工具：
+
+- CSS压缩`CssMinimizerWebpackPlugin`
+- HTML压缩`HtmlMinimizerWebpackPlugin`
+
+
+
 # Loader
 
 > https://webpack.docschina.org/loaders/
@@ -787,7 +883,7 @@ A：单此请求需要加载的Chunk分包数量，打包时会计算如果超�
 
   缺点：
 
-  1. 不支持热更新🚩
+  1. 不支持热更新🚩❓
      建议`production`模式时才使用
      `development`模式时使用`style-loader`以支持热更新
 
@@ -1103,6 +1199,3 @@ module.exports = {
   }
 }
 ```
-
-
-
