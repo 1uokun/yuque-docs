@@ -158,14 +158,139 @@ module.exports = {
 
 ## Import() 动态导入
 
+动态加载是Webpack内置功能之一，不需要任何额外配置就可以通过动态导入语句
+（ES6的`import`和webpack特定的`require.ensure`）实现
+
+⚠️ 1. 调用`import()`内部会使用`promise`，需要使用`promise-polyfill`
+⚠️ 2. 调用`import()`会注入支持**动态加载特性的Runtime**，体积约为**2.5KB**，大于此体积的才值得异步加载
+
+```diff
+// 逻辑判断按需加载
+-  import pdf from "pdfjs"
+
+button.addEventListener("click", async()=>{
++  const pdf = await import("pdfjs");
+   pdf(url)
+})
+```
+
+```javascript
+// 常用于routes路由动态导入，收益最大
+const Home = ()=>import("./Home.vue")
+const Foo = ()=>import("./Foo.vue")
+
+const routes = [
+  {path: "/home", name: "Home", component: Home},
+  {path: "/foo", name: "Foo", component: Foo},
+]
+```
+
+```javascript
+// 预获取（prefetch）：将来某些导航下可能需要的资源
+import(/* webpackPrefetch: true */ './path');
+
+// 预加载（preload）模块：当前导航下可能需要资源
+import(/* webpackPreload: true */ './path');
+```
+
+```javascript
+// webpack.config.js@2.6.0 开始支持设置异步chunk超时时间
+module.exports = {
+  output: {
+    chunkLoadTimeout: 120000（默认12s）,
+  },
+};
+
+// js 支持捕获错误
+import('DynamicComponent').catch((error) => {})
+```
+
+
+
 ## HTTP缓存优化（hash）
 
+Webpack提供一种模版字符串(Template String)能力，用于根据构建情况动态拼接产物文件名称（`output.filename`）
+
+- `[fullhash]`：整个项目的内容hash值，项目任意模块变化都会产生新的fullhash
+- `[chunkhash]`：产物对应Chunk的Hash，Chunk中任意模块变化都会产生新的chunkhash
+- **`[contenthash]`：产物内容Hash，仅当产物内容发生变化时才会产生新的contenthash，实用性较高**
+
+```javascript
+module.exports = {
+  entry: { index: "./src/index.js", foo: "./src/foo.js" },
+  output: {
+    filename: "[name]-[contenthash].js",
+    path: path.resolve(__dirname, "dist"),
+  },
+  plugins: [new MiniCssExtractPlugin({ filename: "[name]-[contenthash].css" })],
+};
+```
+
+⚠️ **异步模块变化会引起主Chunk Hash同步发生变化**
+建议至少为生成环境启动 `[contenthash]` 功能，并搭配 `optimization.runtimeChunk` 将运行时代码抽离为单独产物文件。
+
+```javascript
+module.exports = {
+  // 将部分代码抽取为单独的Runtime Chunk
+  // 这样异步模块变更只会影响Rutime Chunk内容，不再影响主Chunk
+  optimization: { runtimeChunk: { name: "runtime" } }
+}
+```
+
+
+
 ## 外置依赖（externals）
+
+`externals`主要作用将部分模块排除在Webpack打包系统之外。
+
+常和`HtmlWebpackPlugin`注入模块CDN配合使用
+
+```javascript
+module.exports = {
+  // ...
+  externals: {
+    lodash: "_",
+    jquery: "jQuery"
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      templateContent: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Webpack App</title>
+  <script defer crossorigin src="//unpkg.com/react@18/umd/react.development.js"></script>
+  <script defer crossorigin src="//unpkg.com/lodash@4.17.21/lodash.min.js"></script>
+</head>
+<body>
+  <div id="app" />
+</body>
+</html>
+  `,
+    }),
+  ],
+};
+```
+
+
 
 ## 其他
 
 - Tree-Shaking 删除死代码
+
+  - `mode="production"`
+
+  - `optimization.useExports = true`
+
+  - `optimization.minimize = true`
+
+    
+
 - Scope hoisting 合并模块
+
+  - `mode="production"`
+  - `optimization.concatenateModules = true`
 
 
 
@@ -831,6 +956,10 @@ module.exports = {
 
 
 
+## ModuleConcatenationPlugin（合并模块）❓
+
+> https://webpack.docschina.org/plugins/module-concatenation-plugin/
+
 # Loader
 
 > https://webpack.docschina.org/loaders/
@@ -883,7 +1012,7 @@ module.exports = {
 
   缺点：
 
-  1. 不支持热更新🚩❓
+  1. 不支持热更新🚩(**webpack5支持了开发中热重载实际的 CSS 文件**)
      建议`production`模式时才使用
      `development`模式时使用`style-loader`以支持热更新
 
@@ -908,7 +1037,9 @@ module.exports = {
     },
     plugins: [
       new MiniCssExtractPlugin({
-        filename: '[name].[contenthash].css',
+        filename: isProduction ? '[name].[contenthash].css' : 
+        				'[name].css', // ⚠️无hash才能支持热重载
+    
       }),
       new HtmlWebpackPlugin(), // 必须同时使用hwp才能将产物以 link 标签方式插入到html中
     ]

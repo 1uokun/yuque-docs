@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const isProduction = process.env.NODE_ENV == "production";
 
@@ -7,6 +8,10 @@ const config = {
   entry: "./src/index.js",
   output: {
     path: path.resolve(__dirname, "dist"),
+    // chunkLoadTimeout: 10,
+  },
+  externals: {
+    react: "React",
   },
   optimization: {
     splitChunks: {
@@ -42,6 +47,9 @@ const config = {
     minimize: false,
   },
   plugins: [
+    new MiniCssExtractPlugin({
+      filename: isProduction ? "[name].[contenthash].css" : "[name].css",
+    }),
     new HtmlWebpackPlugin({
       template: "index.html",
     }),
@@ -49,8 +57,8 @@ const config = {
   module: {
     rules: [
       {
-        test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
-        type: "asset",
+        test: /\.css$/i,
+        use: [MiniCssExtractPlugin.loader, "css-loader"],
       },
     ],
   },
