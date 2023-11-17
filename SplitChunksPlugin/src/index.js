@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import "./index.css";
 import common from "./common";
 
 console.log(1, React, ReactDOM);
