@@ -76,6 +76,46 @@ module.exports = {
   默认值`resolve.modules = ['node_modules']`
   **建议改成`[path.resolve(__dirname, 'node_modules')]`明确绝对路径可减少逐层搜索次数**
 
+
+
+## performance 性能分析
+
+`performance`常用于监听产物体积，以支持后续的构建优化和应用性能优化。
+🚩根据经验体积超过**`172kb`**的就要抛出警报，进行裁剪优化。
+
+```javascript
+module.exports = {
+  // ...
+  performance: {    
+    // 设置所有产物体积阈值
+    maxAssetSize: 172 * 1024,
+    // 设置 entry 产物体积阈值
+    maxEntrypointSize: 244 * 1024,
+    // 报错方式，支持 `error` | `warning` | false
+    hints: "error",
+    // 过滤需要监控的文件类型
+    assetFilter: function (assetFilename) {
+      return assetFilename.endsWith(".js");
+    },
+  },
+};
+```
+
+其他：Analysis性能分析工具
+
+- **`profile: true`**
+  webpack内置的[Stats Data](https://webpack.docschina.org/api/stats/)统计工具，在打包时可选择生成统计报告（webpack serve过程中不生成）
+
+  ```bash
+  npx webpack --profile --json=compilation-stats.json
+  ```
+
+- **Webpack Analysis** 
+  stats.json在线可视化工具：https://webpack.github.io/analyse/
+
+- **UnusedWebpackPlugin** <u>打包时</u>生成无用文件分析报告
+  开发阶段使用`webpack-deadcode-plugin`可以在启动命令时输出
+
 # 构建性能优化📦
 
 构建性能优化可以大致分为2点：
@@ -115,44 +155,8 @@ module.exports = {
   };
   ```
 
-## Analysis 性能分析工具
-
-- **`profile: true`**
-  webpack内置的[Stats Data](https://webpack.docschina.org/api/stats/)统计工具，在打包时可选择生成统计报告（webpack serve过程中不生成）
-
-  ```bash
-  npx webpack --profile --json=compilation-stats.json
-  ```
-
-- **Webpack Analysis** 
-  stats.json在线可视化工具：https://webpack.github.io/analyse/
-
-- **UnusedWebpackPlugin** <u>打包时</u>生成无用文件分析报告
-  开发阶段使用`webpack-deadcode-plugin`可以在启动命令时输出
-
-### 监听产物体积`performance`
-
-根据经验，体积超过**`172kb`**的就要抛出警报，进行裁剪优化。
-
-```javascript
-module.exports = {
-  // ...
-  performance: {    
-    // 设置所有产物体积阈值
-    maxAssetSize: 172 * 1024,
-    // 设置 entry 产物体积阈值
-    maxEntrypointSize: 244 * 1024,
-    // 报错方式，支持 `error` | `warning` | false
-    hints: "error",
-    // 过滤需要监控的文件类型
-    assetFilter: function (assetFilename) {
-      return assetFilename.endsWith(".js");
-    },
-  },
-};
-```
-
-
+- 
+  
 
 ## HappyPack 并行构建
 
@@ -425,6 +429,14 @@ module.exports = {
 
 
 ## 其他：减小打包体积
+
+- Code Splitting 代码分割
+
+  - 入口起点：`entry`多入口手动分离代码
+
+  - 防止重复：`SplitChunksPlugin`（去重和分离chunk）
+- 动态导入：`import()`
+    
 
 - Tree-Shaking 删除死代码
 
