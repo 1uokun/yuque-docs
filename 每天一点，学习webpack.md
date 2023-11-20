@@ -43,6 +43,39 @@ gulp、Grunt、RequireJS、Browserify等
 
 ![webpack.config.js](./assets/webpack.config.js.png)
 
+## resolve 解析
+
+- **`mainFields`**
+  有一些第三方模块会同时提供ESM和CommonJS代码兼容ES5/6，入口文件地址配置在package.json中。
+  当我们明确需要引入ESM模块以支持Tree-Shaking/Scope Hoisting优化时，可以这样配置：
+
+```javascript
+// 第三方模块的package.json
+{
+  "main": "lib/index.js"
+  "jsnext:main": "es/index.js"
+}
+
+// webpack.config.js
+module.exports = {
+  resolve: {
+    // 优先使用jsnext:main（优先级高的写在前面）
+    mainFields: ['jsnext:main', 'browser', 'main'] // 默认['browser', 'main']
+  }
+}
+```
+
+- **`extensions`**
+
+  多个文件相同名字不同后缀时，会尝试按顺序解析这些后缀名。
+  默认值`resolve.extensions = ['.js', '.json', '.wasm']`
+  **建议减少到只有`[.js]`可减少解析次数**
+
+- **`modules`**
+  告诉webpack解析模块时应该搜索的目录
+  默认值`resolve.modules = ['node_modules']`
+  **建议改成`[path.resolve(__dirname, 'node_modules')]`明确绝对路径可减少逐层搜索次数**
+
 # 构建性能优化📦
 
 ## env 环境治理策略
@@ -57,8 +90,25 @@ gulp、Grunt、RequireJS、Browserify等
   // --config 选项指定配置目标
   npx webpack --config webpack.prod.js
   ```
+  
+- **开发模式禁用产物优化**，减小构建压力
 
-
+  ```javascript
+  module.exports = {
+    mode: "development",
+    optimization: {
+      removeAvailableModules: false, // 关闭chunk被引用分析
+      removeEmptyChunks: false, 		 // 关闭chunk空包分析
+      splitChunks: false,						 // 关闭代码分包
+      minimize: false,							 // 关闭代码压缩
+      concatenateModules: false,		 // 关闭Scope Hoisting(模块合并_
+      usedExports: false,						 // 关闭Tree-Shaking
+    },
+    
+    // 开发环境禁止sourcemap
+    devtool: process.env.mode === "development" ? "eval" : "source-map"
+  };
+  ```
 
 ## Analysis 性能分析工具
 
@@ -152,9 +202,98 @@ module.exports = {
 
 ## 减少编译范围、编译步骤
 
+1. **按需编译 `experimaents.lazyCompilation = true`**
+   将异步模块配置为“按需编译”
+
+2. **约束Loader执行范围**
+   `module.rules[].exclude`
+
+3. **跳过TS类型检查**
+   `ts-loader`设置选项`transpileOnly = true`。
+   Q：没有类型检查那还用TypeScript干嘛？
+   A：将类型检查动作借助`fork-ts-checker-webpack-plugin`剥离到子进程进行
+
+4. **优化ESLint性能**
+   4.1. 仅构建生产包时使用`eslint-webpack-plugin`
+   4.2. 弃用`eslint-loader`
+   4.3. 使用`husky`和编辑器自带的ESLint检查
+
+5. **跳过文件编译 `module.noParse`**
+   需要第三方库提前做好打包处理不需要二次编译，例如：
+
+   - Vue2的`node_modules/vue/dist/vue.runtime.esm.js`文件；
+   - React的`node_modules/react/umd/react.production.min.js`文件；
+   - Lodash的`node_modules/lodash/lodash.js`文件；
+
+   和`externals`效果类似，不过一个不打包直接走CDN，一个打包到文件中
+
+6. **设置`resolve`缩小解析范围**
+   详见配置项
+
+```javascript
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
+
+module.exports = {
+  // 实验特性
+  experiments: {
+    lazyCompilation: true, // 1. 异步模块 按需编译
+  },
+  module: {
+    rules: [
+      {
+        text: /\.js$/,
+        exclude: /node_modules/, // 2. 约束Loader执行范围，排除node_modules
+        exclude: {
+          and: [/node_modules/], // 2.1. 支持混合逻辑，
+          not: [/node_modules\/lodash/] // 排除node_modules中除lodash外的所有文件
+        },
+        use: ["babel-loader"]
+      },
+      {
+        text: /\.ts$/,
+        options: {
+          transpileOnly: true // 3. 跳过TS类型检查
+        }
+      }
+    ],
+  },
+  plugins: [
+    new ForkTsCheckerWebpackPlugin() // 3.1. 将TS类型检查放在子进程中进行
+    
+    // 4. 仅production模式下启用 ESLintPlugin
+    ...( process.env.NODE_ENV === "production" ? 
+    		[new ESLintPlugin()] : [] ) 
+  ]
+}
+```
+
+```javascript
+// 5. noParse案例：
+
+// webpack.config.js
+module.exports = {
+  // ...
+  module: {
+    noParse: /react/,
+  },
+  resolve: {
+    alias: {
+      react: path.join(
+        __dirname,
+        process.env.NODE_ENV === "production"
+          ? "./node_modules/react/cjs/react.production.min.js"
+          : "./node_modules/react/cjs/react.development.js"
+      ),
+    },
+  },
+};
+
+```
 
 
-# 应用性能优化📖❓
+
+# 应用性能优化📖
 
 ## Import() 动态导入
 
@@ -289,12 +428,10 @@ module.exports = {
 
 - Scope hoisting 合并模块
 
+  > 详见`ModuleConcatenationPlugin` 
+
   - `mode="production"`
   - `optimization.concatenateModules = true`
-
-
-
-
 
 # 打包后代码
 
@@ -625,7 +762,7 @@ export {
 
 
 
-## 原理：作用域分析代码压缩
+## 原理：作用域分析代码压缩❓
 
 JS的代码压缩原理：
 
@@ -956,9 +1093,42 @@ module.exports = {
 
 
 
-## ModuleConcatenationPlugin（合并模块）❓
+## ModuleConcatenationPlugin（合并模块）
 
 > https://webpack.docschina.org/plugins/module-concatenation-plugin/
+
+Webpack5默认开启，将符合条件的多个模块合并到同一个函数空间中，从而减少产物体积，优化性能（ScopeHoisting）。
+
+```javascript
+const ModuleConcatenationPlugin = require('webpack/lib/optimize/ModuleConcatenationPlugin');
+
+module.exports = {
+    // 方法1： 将 `mode` 设置为 production，即可开启
+    mode: "production",
+    // 方法2： 将 `optimization.concatenateModules` 设置为 true
+    optimization: {
+        concatenateModules: true,
+        usedExports: true,
+        providedExports: true,
+    },
+    // 方法3： 直接使用 `ModuleConcatenationPlugin` 插件
+    plugins: [new ModuleConcatenationPlugin()],
+  
+    resolve: {
+      // 优先使用jsnext:main中指向的ESM模块文件
+      mainFields: ['jsnext:main', 'browser', 'main']
+    }
+};
+```
+
+与Tree-Shaking类型，Scope Hoisting底层基于ES Module方案的静态特性，推断模块之间的依赖关系，
+并进一步判断模块与模块能否合并。
+
+Scope Hoisting会在以下2个场景中失效：
+
+1. **非ESM模块**
+   同`Tree-Shaking`，可以通过配置项`resolve.mainFeilds`优先引入ESM模块的文件
+2. **模块被多个Chunk引用**
 
 # Loader
 
