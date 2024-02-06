@@ -1,4 +1,5 @@
 # 加减乘除精度丢失
+
 **小数**
 
 解决方案：第三方库
@@ -205,7 +206,9 @@ new Array(10) //(10)[empty × 10]
 - **从finally语句块返回**
 
 > 如果从`finally`块中返回一个值，那么这个值将会成为整个`try-catch-finally`的返回值，
-无论是否有`return`语句在`try`和`catch`中。**这包括在`catch`块里抛出的异常。**
+> 无论是否有`return`语句在`try`和`catch`中。**这包括在`catch`块里抛出的异常。**
+>
+> 支持**异步**流程
 
 
 ```javascript
@@ -220,6 +223,12 @@ function foo(){
 }
 
 console.log(foo()); // 3
+
+try {
+  await fetch().then(res=>{})
+}finally {
+  // fetch回调后再执行
+}
 ```
 
 - **嵌套try块**

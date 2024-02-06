@@ -33,13 +33,15 @@ gulp、Grunt、RequireJS、Browserify等
 
 > [Configuration](https://webpack.js.org/configuration/)
 
-🚩webpack首先需要根据输入配置（`entry`/`context`）找到项目入口文件；
+## 打包流程 🚩
 
-之后根据按模块处理（`module`/`resolve`/`externals`等）所配置的规则逐一处理模块文件，
-处理过程包括转译、依赖分析等；
+1. webpack首先需要根据输入配置（`entry`/`context`）找到项目入口文件；
 
-模块处理完毕后，最后根据后处理相关配置项（`optimization`/`target`等）合并模块资源、
-注入运行时以来、优化产物结构等。🚩
+2. 之后根据按**模块处理**（`module`/`resolve`/`externals`等）所配置的规则逐一处理模块文件，
+   处理过程包括转译、依赖分析等；
+
+3. 模块处理完毕后，最后根据**后处理**相关配置项（`optimization`/`target`等）合并模块资源、
+   注入运行时以来、优化产物结构等。
 
 ![webpack.config.js](./assets/webpack.config.js.png)
 
@@ -436,8 +438,7 @@ module.exports = {
 
   - 防止重复：`SplitChunksPlugin`（去重和分离chunk）
 - 动态导入：`import()`
-    
-
+  
 - Tree-Shaking 删除死代码
 
   - `mode="production"`

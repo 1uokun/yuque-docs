@@ -1169,7 +1169,10 @@ import styles from './config.scss'
 <p className={styles.primaryColor}>
 ```
 
-# 
+# web components
+
+>  作者需要一个页面效果，最终选择了 Web 组件来实现，这样可以与任何框架匹配。否则，换了一个框架，就需要重新实现。
+> https://jakelazaroff.com/words/web-components-will-outlive-your-javascript-framework/
 
 # 参考
 
