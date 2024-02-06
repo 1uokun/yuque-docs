@@ -168,6 +168,20 @@ form.validateFields((error, params)=>{
   }
 })
 ```
+## From.create()组件的ref
+
+经过Form.create()(Component) 输出后的组件，如何获取ref
+
+```jsx
+<FormAfter
+  wrappedComponentRef={(ref)=>{
+  	this.ref = ref
+  }}
+ />
+```
+
+
+
 # Modal
 
 - `<Modal>`在`3.x`版本`state`会被缓存，即使`destroyOnClose={true}`

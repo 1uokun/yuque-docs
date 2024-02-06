@@ -64,7 +64,7 @@ import { Suspense, useDeferredValue } from 'react'
     - `JSX`全称应该翻译为`JavaScript`的`XML`
     - 仅仅是`React.createElement(component, props, ...children)`函数的`语法糖`
     - babel loader已内置支持.jsx文件
-   
+
 
 - **为什么使用JSX？**
 
@@ -254,7 +254,7 @@ this.setState({
 
 
 -  **virtual dom的 create/diff**
-[https://github.com/Matt-Esch/virtual-dom](https://github.com/Matt-Esch/virtual-dom) 
+   [https://github.com/Matt-Esch/virtual-dom](https://github.com/Matt-Esch/virtual-dom) 
    - `virtual-dom/h` json 2 dom tree，第3个参数为可变值
    - `virtual-dom/diff` var patches = diff(tree, newTree)
    - `virtual-dom/patch` 派送更新事件 patch(rootNode, patches)
@@ -613,7 +613,7 @@ A: 通过`batchUpdate`函数手动声明运行上下文
 > 2. `onFocus`和`onBlur`事件底层切换为原生的`focusin`和`focusout`
 > 3. 捕获事件（例如`onClickCapture`）现在使用的是实际浏览器中的捕获监听器
 > 
- 
+
 
 
 ## 事件池(v16)
@@ -742,3 +742,18 @@ key帮助React识别哪些元素改变了，比如被添加或删除。
 不能用索引之类的值作为key 
 -  **可重现**：
 不能用`Math.random`、`new Date()`之类的值作为key 
+
+
+
+# ReactDOM
+
+
+
+获取ref对应的Docuemnt DOM
+
+```jsx
+import {findDOMNode} from 'react-dom'
+
+findDOMNode(refs)
+```
+
