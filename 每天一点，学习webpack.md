@@ -1523,3 +1523,47 @@ module.exports = {
   }
 }
 ```
+
+# Presets
+
+> 预设 - plugin/loader合集
+
+```js
+// module[].rules[].use[].options[].presets
+module: {
+  rules: [
+    {
+      test: /\.js$/,
+      use: [{
+        loader: 'babel-loader',
+        options: {
+          presets: ['@babel/preset-env']
+        }
+      }]
+    }
+  ]
+}
+
+// 或者第三方包config文件，如babel.config.js/.babelrc
+{
+  presets:["@babel/preset-env"]
+}
+```
+
+# runtime
+
+> 运行时
+
+- [ ] umi.js vue的runtime❓
+
+  1. runtime: [@umijs/renderer-vue](https://github.com/umijs/umi/tree/master/packages/renderer-vue)
+     export出一些api并重命名通用API。然后由umi导出
+
+  2. presets: [@umijs/preset-vue](https://github.com/umijs/umi/tree/master/packages/preset-vue)
+     就是用预设来使umi导出定向到对应的包，在yarn时执行命令生产`.umi`文件
+     文件内有exports.ts，API在这里被导出
+
+  
+  
+
+- [ ] bun.js runtime❓

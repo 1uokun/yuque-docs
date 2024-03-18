@@ -1,3 +1,5 @@
+> 《[Babel 插件通关秘籍](https://juejin.cn/book/6946117847848321055/section)》
+
 # Babel的用途
 
 1. 把代码中的esnext的新语法、typescript和flow语法转成目标环境支持的js语法
