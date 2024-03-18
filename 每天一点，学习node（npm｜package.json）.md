@@ -1,4 +1,25 @@
+## 代理加速
+
+> 网络代理：https://www.jianshu.com/p/709c6853cc42
+> npm换源：https://juejin.cn/post/7054747440032776199
+
+```bash
+# 淘宝镜像
+npm config set registry https://registry.npmmirror.com
+# 原始地址
+npm config set registry https://www.npmjs.com/
+
+
+# 设置代理
+npm config set proxy=http://127.0.0.1:7890
+#删除代理
+npm config delete proxy
+```
+
+
+
 # 依赖管理
+
 > 参考链接：[https://mp.weixin.qq.com/s/9JCs3rCmVuGT3FvKxXMJwg](https://mp.weixin.qq.com/s/9JCs3rCmVuGT3FvKxXMJwg)
 
 - npm v2/v3

@@ -386,8 +386,24 @@ React-Native layout with Flexbox
 | `alignContent` | 默认值为`stretch` | 默认值为`flex-start` |
 | `flexShrink` | 默认值为**1** | 默认值为**0** |
 
-
 # CSS布局
+
+## 🚩 direction: rtl
+
+```css
+.rtl {
+	direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
+```
+
+
+
+## 🚩display: grid
+
 ## 水平垂重居中
 
 1. `**Flex**`**方案**

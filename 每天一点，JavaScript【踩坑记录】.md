@@ -174,7 +174,22 @@ String('')     // '' 强制转换为字符串
  */
 console.assert(assertion:bool, msg)
 ```
+其他：在控制台消息中使用 CSS、SVG 和 HTML
+https://frontendmasters.com/blog/console-delight/
+
+```javascript
+// 核心是 %c
+console.info(
+  '%ccontent %c',
+  'background: #15889f; border-radius:0.5em; padding:0.2em 0.5em 0.1em 0.5em; color: white;'
+  ''
+);
+```
+
+
+
 # sleep()函数
+
 利用阻塞实现java的sleep(休眠正在执行的线程)
 ```javascript
 function sleep(delay){

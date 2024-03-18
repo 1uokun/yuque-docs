@@ -79,7 +79,10 @@ setDefaultData({...defaultData, unit:"KG"});
 🚩不能单纯通过使用`form.setFieldsValue`和`form.getFieldValue`来实现增删操作
 参考链接：[https://stackoverflow.com/questions/58762136/get-result-as-array-in-antd-form/67902792#67902792](https://stackoverflow.com/questions/58762136/get-result-as-array-in-antd-form/67902792#67902792) 
 -  重写3.x Form动态增减表单项
-代码链接：[https://github.com/1uokun/ant-design/blob/722f6d2411dad7ba0977be71beafe5e9512311cc/components/form/demo/dynamic-form-item.md](https://github.com/1uokun/ant-design/blob/722f6d2411dad7ba0977be71beafe5e9512311cc/components/form/demo/dynamic-form-item.md) 
+<del>代码链接：[https://github.com/1uokun/ant-design/blob/722f6d2411dad7ba0977be71beafe5e9512311cc/components/form/demo/dynamic-form-item.md](https://github.com/1uokun/ant-design/blob/722f6d2411dad7ba0977be71beafe5e9512311cc/components/form/demo/dynamic-form-item.md) </del>
+-  https://3x.ant.design/components/form-cn/#components-form-demo-dynamic-form-item
+  🚩**动态表单**-核心是`names[${key}].xx`，而不是<del>`name[${index}].index`</del>
+  需要一个`_keys`,一个`_names`，提交的时候用`keys.map(key => names[key])`
 ## getFieldDecorator
 
 -  基本操作
@@ -116,8 +119,12 @@ setDefaultData({...defaultData, unit:"KG"});
 }}
 ```
 
-- **万物受控组件皆可被Form**
+## valuePropName 
+
+**万物受控组件皆可被Form**
+
 `valuePropName`+`getValueFromEvent`替换FormItem默认的value+onChange组合
+
 ```jsx
 <Switch checked={false}> // Swicth的受控值字段是checked而不是value
 

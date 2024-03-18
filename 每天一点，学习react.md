@@ -51,6 +51,49 @@ import { Suspense, useDeferredValue } from 'react'
 
 ```
 
+
+
+## setTimeout 内存泄漏
+
+setTimeout函数本身不会导致内存泄漏，但是在组件卸载或更新时忘记**清除定时器**，就可能导致内存泄漏
+
+```jsx
+componentDidMount() {
+    this.timerID = setTimeout(
+      () => console.log('Hello, World!'),
+      1000
+    );
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.timerID);
+  }
+```
+
+## promise 内存泄漏
+
+除了setTimeout，对promise返回处理不做**组件卸载判断**也会导致内存泄漏。
+promise没有abort
+
+ ```jsx
+ const isUnmount = React.useRef(false)
+ 
+ const handle =async()=>{
+   const res = await promise('xxx');
+   if(!isUnmount.current){
+     // 对res结果处理
+   }
+ }
+ 
+ React.useEffect(()=>{
+   return ()=>{
+     isUnmount.current = true;
+   }
+ },[])
+ ```
+
+
+
 # React和Vue区别
 
 1. Vue更新是数据**原子级别**，React是**组件级别**
