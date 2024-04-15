@@ -2009,12 +2009,40 @@ console.log(k)	//5+5=10
 
 # 数组
 
-`**concat**`
+**`concat`**
 
 `push`的不改变源数组的替代方法：`concat`。
 concat(arr1,arr2) 方法用于连接两个或多个数组。该方法不会改变现有的数组，而仅仅会返回被连接数组的一个**_副本_**。
 
+## new Map
+
+对于`[key:string]:value`存储对象无序的情况下，可以用`new Map()`来获得有序存储，
+
+🚩并且删除某个item无序遍历
+
+```javascript
+export const WORK_ORDER_TICKET_TYPE_FOR_FILTER_MAP_LIST = new Map([
+  ['0', '售前'],
+  ['9', '售后-仅退款'],
+  ['5', '售后-退货退款'],
+  ['3', '其他'],
+]);
+
+// MapIterator to Array
+[...WORK_ORDER_TICKET_TYPE_FOR_FILTER_MAP_LIST] // [['0', '售前'], ['9', '售后-仅退款'], ['5', '售后-退货退款'], ['3', '其他'],]
+
+// keys
+[...WORK_ORDER_TICKET_TYPE_FOR_FILTER_MAP_LIST.keys()] // ['0','9','5','3']
+// get
+WORK_ORDER_TICKET_TYPE_FOR_FILTER_MAP_LIST.get("9") // '售后-仅退款'
+
+// more: set/delete/has
+```
+
+
+
 # Function == Object???
+
 Function可像Object那样添加额外属性
 ```javascript
 function foo(){
