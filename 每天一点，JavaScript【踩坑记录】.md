@@ -972,6 +972,31 @@ function a(){ console.log('foo') }() // 语法错误,因为js引擎把IIFE识别
 void function a(){ console.log('foo') }() // 正常调用
 ```
 
+## 模运算符 `%`
+
+> 百分号（%）运算符是用于计算两个操作数相除后的余数。通常也被称为“取余运算符”。
+
+一些使用 `%` 运算符的常见场景包括：
+
+- 检查一个数字是否为偶数或奇数 `num % 2 === 0`为偶数否则为奇数
+- 在循环中创建循环索引，使索引值在特定范围内循环（实现圆周运动或周期性事件）
+
+```javascript
+// 周期性事件：从 0 到 4 之间循环
+let count = 0;
+const period = 5;
+
+function periodcEvent(){
+  console.log(count);
+  count = (count + 1) % period;  // 确保计数器在 0 到 period-1 之间循环
+  setTimeout(periodcEvent, 1000); // 每秒执行一次
+}
+
+periodcEvent();
+```
+
+
+
 ## 其他
 
 `null`为空对象，创建对象赋值前，最好用var obj = null

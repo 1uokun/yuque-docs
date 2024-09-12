@@ -15,6 +15,85 @@
 - **通用场景封装
 - **`useVirtualList` @umijs/hooks
 
+# 自定义Hook
+
+关于自定义hook内部的`useEffect`执行经过：
+当Component组件deps更新了，那么就会
+
+1. 执行清理函数，输出“===卸载===”;
+2. 然后应用新的副作用，输出"===挂载==="
+
+自定义hook不能保证外部不必要的re-render的情况下，内部依赖的就是会重复经历生命周期；
+
+```jsx
+function useHook(deps){
+  useEffect(()=>{
+    console.log("===挂载===");
+    return ()=>{
+      console.log("===卸载===")
+    }
+  },[deps])
+}
+```
+
+优化：
+
+1. 使用空依赖数组
+
+2. 使用useRef存储值
+
+   ```jsx
+   import React, { useEffect, useRef, useState } from 'react'
+   
+   function useCustomHook(count) {
+     const countRef = useRef(count)
+   
+     useEffect(() => {
+       countRef.current = count
+     }, [count])
+   
+     useEffect(() => {
+       // 这是副作用
+       console.log('Effect is applied')
+   
+       // 返回清理函数
+       return () => {
+         console.log('Cleaning up')
+         func(countRef.current)
+       }
+     }, []) // 空依赖数组
+   
+     return countRef.current
+   }
+   
+   function func(count) {
+     console.log('func is called with count:', count)
+   }
+   
+   function MyComponent() {
+     const [count, setCount] = useState(0)
+   
+     console.log('qwe')
+     const a = useCustomHook(count)
+     console.log('xzc', a)
+   
+     return (
+       <div>
+         <p>Count: {count}</p>
+         <button onClick={() => setCount(count + 1)}>Increment</button>
+       </div>
+     )
+   }
+   
+   export default MyComponent
+   ```
+
+3. 条件执行副作用
+
+   
+
+   
+
 # Hook规则
 
 -  **ESlint插件**
@@ -58,7 +137,7 @@ React依靠Hook声明的顺序调用，所以不要将Hook写在条件语句内
 ```javascript
  const [name, setName] = useState("")
 ```
- 
+
 
 - 多个变量  
 ```javascript
@@ -109,7 +188,7 @@ const handleName = function(){
  //✅ createRows() 只会被调用一次，对于createRows需要复杂计算的将得到优化
  const [rows, setRows] = useState(()=>{return createRows(props, count)});
 ```
- 
+
 
 - `**setState**`**什么时候是同步的？什么时候是异步的？
 执行的方法是同步的，但是值的更新是会被合并（**`**batchingUpdate**`**）延迟执行的，所以看起来像异步的**
@@ -126,7 +205,7 @@ const handleName = function(){
    console.log(count); // 3； 并且因为合并更新的缘故，只会打印一次
  }, [count])
 ```
- 
+
 
 - **🚩**`**setState**`**不依赖外部变量的写法** 
 ```diff
@@ -257,7 +336,7 @@ useEffect(()=>{
 },[counter])
 ```
 
-## exhaustive-deps
+## exhaustive-deps 更新依赖
 关于`eslint-pluign-react-hooks`的`exhaustive-deps`规则（在添加错误依赖时发出警告并给出修复建议）的说明:
 如果按照规范，我们必须把所有依赖项都要加到依赖数组中，但是有时不希望监听某个依赖项的变化怎么办？
 ⚠️要么**学院派**思维老老实实优化`state`转`ref`，
@@ -279,6 +358,32 @@ useEffect(()=>{
 【实用派】和【学院派】  
 
 只有菜鸡才会互啄，而高手们都是以学院派的思维做实用派的事
+
+## 终止异步函数
+
+> 使用`setTimeout`、`setInterval`、`Promise**.**then`等在卸载组件时容易产生闭包陷阱
+
+```jsx
+// isUnmount ref
+const isUnmount = React.useRef(false)
+useEffect(()=>{
+  isUnmount.current = false
+  return ()=>{
+      isUnmount.current = true
+  }
+},[])
+
+
+// 更新前判断isUnmount
+const fetchAPI = async()=>{
+  const res = await api();
+  if(isUnmount.current === false){
+    // update state
+  }
+}
+```
+
+
 
 # useContext
 
@@ -713,7 +818,7 @@ visible?<div ref={root}></div>:<div ref={refCallback}></div>
 
 **
 
-1. 实用`setTimeout`、`setInterval`、`Promise**.**then`等
+1. 使用`setTimeout`、`setInterval`、`Promise**.**then`等
 2. `useEffect`的卸载函数
 
 ```jsx

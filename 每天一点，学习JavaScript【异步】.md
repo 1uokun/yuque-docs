@@ -973,7 +973,7 @@ await只影响下面的代码，上面的代码不影响
 - `await`关键字只能结合Promise控制异步
 - 无法在外界取消一个正在运行中的async函数
 
-#### async/await在Array.prototype.map()的使用场景
+## async/await在Array.prototype.map()的使用场景
 
 > 参考：[如何在 JS 循环中正确使用 async 与 await](https://segmentfault.com/a/1190000019357943)
 

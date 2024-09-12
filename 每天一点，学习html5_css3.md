@@ -314,70 +314,57 @@ flex: 0 0 9rem;
 默认值为`0 1 auto`，后两个属性可选。
 建议这样简写
 
--  `**flex-grow**`
+| 简写            | 等同于           |
+| --------------- | ---------------- |
+| `flex: 1`       | `flex: 1 1 0%`   |
+| `flex: 0`       | `flex: 0 1 0%`   |
+| `flex: initial` | `flex: 0 1 auto` |
+| `flex: auto`    | `flex: 1 1 auto` |
+| `flex: none`    | `flex: 0 0 auto` |
+
+-  **`flex-grow`**
 **定义项目的放大比例**
-默认为0.即如果存在剩余空间，页不放大 
--  `**flex-shrink**`
-**定义项目的缩小比例**
-如果所有项目的`flex-shrink`属性都为1，当空间不足时，都将等比例缩小；
-如果一个项目的`flex-shrink`属性为0，其他项目都为1，则空间不足时，前者不缩小 
--  `**flex-basis**`
-定义了在分配多余空间之前，项目占据的主轴空间。
-浏览器根据这个熟悉，计算主轴是否有**剩余空间**。
-可以设置跟`width`属性一样的值（比如350px）,则项目将占据固定空间。 
+默认为0.即如果存在剩余空间，不放大 
+- **`flex-shrink`**
+  **定义项目的缩小比例**
 
-### react-native
+  flex 元素仅在默认宽度之和大于容器的时候才会发生收缩，其收缩的大小是依据 flex-shrink 的值;
+  如果所有项目的`flex-shrink`属性都为1，当空间不足时，都将等比例缩小；
+  如果一个项目的`flex-shrink`属性为0，其他项目都为1，则空间不足时，前者不缩小 
+-  **`flex-basis`**
+定义主轴上的初始大小，优先级高于`width`/`height`。 
 
-React-Native layout with Flexbox
 
--  **flexDirection** 
-   - `row`
-   - `column`(默认值)
-   - `row-reverse`
-   - `column-reverse`
--  **justifyContent**
-应用于主轴 
-   - `flex-start`(默认值)
-   - `flex-end`
-   - `center`
-   - `space-between`
-两边无间隙
-   - `space-around`
-均匀等分（子view的数量）部分，子view在各个等分的正中间
-   - `space-evenly`(only RN)
-与`space-around`区别在于最左边和最右边(row轴)或者最上边和最下边(column)轴
-的间隔和中间的间隔相等
-即子view没有撑满的情况下，他们之间的间隔都相等
--  **alignItems**
-应用于横轴 
-   - `stretch`(默认值)
-拉伸容器的子对象以匹配容器横轴的高度
-即当`flexDirection:row`且未设置子view高度`height`时，默认撑满高度
-当`flexDirection:column`且未设置子view宽度`width`时，默认撑满宽度
--  **alignSelf**
-和`alignItems`选项和效果相同，
-但不影响容器中的子级，通过该属性可以代替父级设置的`alignItems`任何选项 
--  **alignContent**
+
+**以下为不常用的写一下，方便自己记忆**
+
+- **justifyContent**
+  应用于主轴 
+
+  - `space-evenly`
+
+    space-evenly沿主轴均匀分布对齐容器内的子项。
+    每对相邻项目之间的间距、主起始边缘和第一个项目、以及主结束边缘和最后一个项目之间的间距都完全相同。
+    与`space-around`区别在于最左边和最右边(row轴)或者最上边和最下边(column)轴的间隔和中间的间隔相等;
+    即子view没有撑满的情况下，他们之间的间隔都相等。
+
+- **alignItems**
+  应用于横轴 
+  - `stretch`(默认值)
+  拉伸容器的子对象以匹配容器横轴的高度（若要生效，不得有固定尺寸）
+  即当`flexDirection:row`且未设置子view高度`height`时，默认撑满高度
+  当`flexDirection:column`且未设置子view宽度`width`时，默认撑满宽度
+
+  
+
+- **alignSelf**
    定义沿横轴的线分布，
    仅在使用`flexWrap`时生效 
-   - `flex-start`(默认值)
-   - `strctch`(在web中使用Yoga时为默认值)
--  **flexWrap** 
-   - `nowrap`(默认值)
-   - `wrap`
-   - `wrap-reverse`
--  **flexBasis**
-`:number`(px)
-设置初始宽度(`row`布局时)或者初始高度(`column`布局时)
-比直接设置width/height更灵活 
--  **flexGrow**
-`:number`(int)
-和其他同样设置了`flexGrow`的对比倍数
-和`flex`不同的是，仅仅在分配剩余的空间中和设置了`flexGrow`的元素对比，没有设置该选项的不算进去 
--  **flexShrink**
-`:number`(int)
-只有当子级的总大小超过父级的宽度时使用，
-和`flexGrow`效果一致 
+
+   - `baseline`
+     baseline将容器的子项沿公共基线对齐。可以将个别孩子设置为父母的参考基线。
+
+     
 
 ### flex在CSS和React-Native的区别
 |  | CSS | ReactNative |

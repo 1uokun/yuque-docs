@@ -800,3 +800,8 @@ import {findDOMNode} from 'react-dom'
 findDOMNode(refs)
 ```
 
+
+
+# JSX.Element，ReactNode，ReactElement区别
+
+https://stackoverflow.com/questions/58123398/when-to-use-jsx-element-vs-reactnode-vs-reactelement 
