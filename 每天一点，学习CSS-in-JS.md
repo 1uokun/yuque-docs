@@ -3,29 +3,26 @@
 简单来说 CSS-in-JS 就是将应用的CSS样式写在JavaScript文件里面，而不是独立为.css/less/scss之类的文件。
 这样就可以在CSS中使用JS的模块声明、变量定义、函数调用和条件判断等语言特性来提供灵活的可拓展的样式定义。
 
+当听到概念性的东西，特别是简称术语，容易模糊不清；
+
+我们只需要知道以下开源三方库，就可以立马得到具体画像，顺便看看对我们项目是否有点帮助吧。
+
 # JSS (JavaScript Style Sheets)
 
-> JSS 是一类具体的 `CSS-in-JS` 实现库；
+> JSS 是一类具体的 `CSS-in-JS` 实现库，命名灵感来自JavaScript Style Sheets(JSSS)，
+> **语法风格偏向函数式**，在CSS-in-JS可以作为一个大类以区分。
 
-## react-jss
+## 1. react-jss
 
-1. 文档地址：https://cssinjs.org/react-jss/?v=v10.10.1
+1. 文档地址：https://cssinjs.org/react-jss?v=v10.10.1
 2. 样式通过 JavaScript 对象来定义，使用对象结构来写样式；
-3.  和CSS-in-JS 一样，支持**动态样式**和**组件内样式隔离**。🚩
-4. 语法风格偏向函数式，可能不如 CSS-in-JS 语法直观。
+3. 支持**动态样式**和**组件内样式隔离**。🚩
+4. 样式的生成发生在**运行时**，灵活性高，但在性能上不如**静态编译**的方案; 
+5. 适合复杂的、需要动态生成或修改样式的场景，但可能在某些性能敏感的场景下表现不佳。(jss系列已停止维护，不推荐使用⚠️)
 
 ```jsx
 import React from 'react'
 import { createUseStyles } from 'react-jss'
-
-const useStyles = createUseStyles({
-  myButton: {
-    padding: props=>props.spacing
-  },
-  myLabel: props =>({
-    height: props.height
-  })
-})
 
 const Button = ({children, ...props}) => {
   const class = useStyles(props);
@@ -35,61 +32,122 @@ const Button = ({children, ...props}) => {
     </button>
   )
 }
+
+const useStyles = createUseStyles({
+  myButton: {
+    margin: 10,
+    padding: props=>props.spacing
+  },
+  myLabel: props =>({
+    height: props.height
+  })
+})
 ```
 
-# Tailwind CSS专题
+```jsx
+<Button height={10} spaceing={5}>Submit</Button>
+```
 
-> Tailwind CSS 不是 CSS-in-JS，它是一种功能类优先(**Utility-First Fundamentals**)的 CSS 框架;提供原子化、可复用的CSS类。
-> 但是在讲CSS-in-JS时，还是值得提到它，值得被一起使用。🚩
+上述代码将编译为 ⬇️ ⬇️ ⬇️ ; 
+但当`height`或`spaceing`更新时则会重新生成classname，如`Button-myButton-1-25`➡️`Button-myButton-1-27`
 
-## headless UI 天然适合使用tailwind css
+```html
+<button class="Button-myButton-1-25">
+  <label class="Button-myLabel-1-26"> Submit </label>
+</button>
 
-headless组件内部可以通过透出`className` prop 来支持
-
-````tsx
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+<style>
+.Button-myButton-1-25 {
+  margin: 10px;
+  padding: 5px;
 }
+.Button-myLabel-1-26 {
+  heighte: 10px;
+}
+</style>
+```
 
-<div className={cn("flex items-center space-x-2", className)}></div>
-````
 
-但是`node_modules`三方UI库如果不透出`className` prop，就不能支持了
 
-- 所以最好设计组件时永远透出`className`，就像`style`一样
-- 对于只有`style`可以使用 `twin.macro宏来实现**【tw className 生成➡️ 内联style】**
+## 2. @stylexjs/stylex
 
-# Styled-Component
+1. 文档地址：https://stylexjs.com/docs/learn/styling-ui/defining-styles/
+2. 通过静态提取的方式将**样式**转化为**类名**；**零运行时消耗**。🚩
+3. 适用于渲染性能要求比较高的应用场景，特别是移动端的应用。(推荐使用✅)
 
-是`css-in-js`一个设计理念分支的统称，不单独指某个库，
-参考：https://heatseeker.hashnode.dev/top-css-in-js-libraries-compared
+```jsx
+import * as stylex from '@stylexjs/stylex';
+
+const styles = stylex.create({
+  button: {
+    backgroundColor: 'lightblue',
+  }
+});
+
+<button {…stylex.props(styles.button)} />
+```
+
+4. 支持**动态注入**（将生成依赖于**CSS变量**的静态样式，并在运行时设置该变量的值）。
+
+```jsx
+import * as stylex from "@stylexjs/stylex"
+const styles = stylex.create({
+  button: (height) => ({
+    backgroundColor: 'lightblue',
+    height
+  })
+})
+
+<button {...stylex.props(styles.button(19))} />
+```
+
+上述代码将编译为⬇️ ⬇️ ⬇️
+```html
+<button class="x1jwls1v" style="--height:19" />
+
+<style>
+  .x1jwls1v {
+    background-color: lightblue;
+    height: var(--height, revert);
+  }
+</style>
+```
+
+# Styled Component
+
+> `Styled-Component`也是一类具体的 `CSS-in-JS` 实现库，
+> 使用ES6模版字符串的形式编写强调**组件级别样式**，在CSS-in-JS也可以作为一个大类。
+>
+> 参考：https://heatseeker.hashnode.dev/top-css-in-js-libraries-compared （博文图片可以参考）
+
+## 1. styled-component
+
+1. `styled`方法可以在所有组件或任何第三方组件上完美运行，只要组件是通过`className`属性获取样式；
+
+   > *Note: react-native组件已经默认兼容为`style`*
+
+2. 优势是：极其简单、直观，模板字符串写法和普通的 CSS 书写基本一致，适合初次接触CSS-in-JS的开发者。 ✅
 
 ```tsx
-// 同 import { styled } from 'styled-components' // 更单一纯粹 allin SC
-// 同 import styled from '@emotion/styled' // 更轻，详见下
-import { styled } from 'twin.macro' // 集成上面2个
+import { styled } from 'styled-components'
 
-// 自定义组件的话：styled(button)
 const Button = styled.button`
 	color: turquoise;
  `
- 
-{/* ⬇️ ⬇️ ⬇️ */}
 
+return (
+  <Button></Button>
+){
+
+ 
+{/*样式最终是被编译成类名 ⬇️ ⬇️ ⬇️*/}
 <button {…props} className=“css-hashname”/>
 ```
 
-## @emotion
+## 2. @emotion/styled
 
-- **@emotion/react**
-  react项目专用，集成了/styled和/css包
-
-  ```jsx
-  import { css,styled } from '@emotion/react'
-  ```
+1. 相对于`styled-component`,`@emotion/styled`是经过`@emotion`系列拆分后的**体积更小**
+2. 在SSR场景下，运行时性能和编译后的代码效率更高。✅
 
 - **@emotion/styled**
   styled-component独立包
@@ -99,7 +157,7 @@ const Button = styled.button`
   ```
 
 - **@emotion/css**
-  书写内联style，但是生成className的基础包
+  书写内联style生成className的基础包
 
   ```jsx
   /** @jsxImportSource @emotion/css */
@@ -110,41 +168,34 @@ const Button = styled.button`
   `
   ```
 
-  
+- **@emotion/react**
+  react项目专用
 
-
-
-## Styled-Component vs Tailwind CSS
-
-1. 一种快速的方式快速建站或生成一个单页面（即不复杂的页面）用`tailwind`
-2. 开发一个更长期的项目，并且要求容易维护 用 `styled-component`
-3. **蓝湖**上UI稿给的css对于`tailwind`是不能直接拿来用的
-4. `tailwind`不能**「语义化」**，即使可以合并多个classs成为单个class
-5. 参考：https://juejin.cn/post/6940078983983661063
+  ```jsx
+  import { jsx, css, Global, ClassNames } from '@emotion/react'
+  ```
 
 # twin.macro 
 
-## 集成babel宏
+## babel宏定义语法糖
 
->  是一种 **babel宏**（语法糖），集成了`styled-component`和`@emotion/styled`和`tailwindcss` 🚩🚩🚩
->  可以参考 [package.json](https://github.com/ben-rogerson/twin.macro/blob/master/package.json#L70) 得知 
-
-- next 13支持 https://github.com/isNan909/tailwind-twin-nextjs
-- nextjs14 SWC打包器不支持babel宏 https://github.com/facebook/stylex/issues/190#issuecomment-1857716016 
-- 不过专门针对SWC做了一个swc宏 https://github.com/ben-rogerson/twin.examples/tree/master/next-stitches-typescript
+>  **`twin.macro` 集成了 `styled-component` 和 `@emotion/styled` 和 `tailwindcss`** 🚩
+>  参考 [package.json](https://github.com/ben-rogerson/twin.macro/blob/master/package.json#L70) 依赖即可得知
+>
+>  Note: nextjs14 SWC打包器不支持babel宏，不过最近修复了这个问题 https://github.com/ben-rogerson/twin.examples/tree/master/next-stitches-typescript
 
 1. **【 tw=“classname” 】➡️  className**
 
-   > 可以直接引用tailwind类名了 🌟
+   > 可以直接引用tailwind类名 🌟
 
    ```jsx
    import tw from "twin.macro";
    
    <Tag tw={"text-red-900"}> antd tag </Tag>
    
-   {/* ⬇️ ⬇️ ⬇️ */}
+   ⬇️ ⬇️ ⬇️ 
    
-   <Tag className="text-red-900"> antd tag </Tag>
+   (<Tag className="text-red-900"> antd tag </Tag>)
    ```
 
 2. **【 css={styleProps} 】➡️   className**
@@ -152,12 +203,12 @@ const Button = styled.button`
    ```jsx
    <Tag css={{color: "red"}}> antd tag </Tag>
    
-   {/* ⬇️ ⬇️ ⬇️ */}
+   ⬇️ ⬇️ ⬇️
    
-   <Tag className="css-hashxx-Home"> antd tag </Tag>
+   (<Tag className="css-hashxx-Home"> antd tag </Tag>)
    ```
 
-   **和 npm【@emotion/css】 混合使用**
+   **和 【@emotion/css】 混合使用**
 
    ```jsx
    import tw from "twin.macro"
@@ -176,7 +227,11 @@ const Button = styled.button`
    <h1 style={style}>asd</h1>
    ```
 
-## 能在styled-componet中使用tailwind 类名，各取所长
+## styled-component + tailwind 各取所长
+
+1. 单一的`styled-component`会疲于手写CSS样式；
+2. 单一的`tailwind`样式类名会导致代码很长、阅读性差；
+3. 各取所长，即做到组件级别的样式隔离，又能快速定义样式。
 
 ```tsx
 import tw, { styled } from 'twin.macro'
@@ -189,9 +244,7 @@ const Input = styled.input`
 const Component = () => <Input hasHover />
 ```
 
-
-
-# antd在CSS-in-JS中的实践
+# TODO: antd在CSS-in-JS中的实践
 
 ## 使用场景
 
@@ -232,28 +285,3 @@ require("antd/lib/button/style/css")
 - 多主题只增加变量
 
 但是存在浏览器兼容问题⚠️
-
-
-
-## CSS-in-JS在编译时的优势
-
-> 「编译时」就是写代码的时候
-
-- 零运行时消耗
-  （不编译css了，但是编译js时间加长了）
-- 使用 JS 书写
-- 支持动态注入
-
-
-
-# 参考
-
-- https://www.cnblogs.com/gfhcg/p/17259022.html
-
-
-
-## 《我们为何弃用css-in-js》
-
-> https://cloud.tencent.cosm/developer/article/2170891 
-> 个人理解：因为不支持NextJS的SSR❓
-
