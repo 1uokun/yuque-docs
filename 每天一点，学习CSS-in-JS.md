@@ -1,6 +1,6 @@
-# 每天一点，学习CSS-in-JS
+# 打破“防自学机制”，安利这几个库了解CSS-in-JS
 
-打破“防自学机制”，安利这几个库了解CSS-in-JS
+
 
 > “CSS-in-JS是一种方案术语，方案术语的起源通常源于几个业界广泛认可的库，它们共同组成并逐渐发展出相应的方案或环境。”
 
@@ -15,15 +15,14 @@
 
 # JSS (JavaScript Style Sheets)
 
-> JSS 是一类具体的 `CSS-in-JS` 实现库，命名灵感来自JavaScript Style Sheets(JSSS)，
-> **语法风格偏向函数式**，在CSS-in-JS可以作为一个大类以区分。
+> JSS 是一类具体的 CSS-in-JS 实现库，命名灵感来自 JavaScript Style Sheets (JSSS)。**其语法风格偏向函数式**。
 
 ## react-jss<sup>[1]</sup>
 
-1. 样式通过 JavaScript 对象来定义，使用对象结构来写样式；
-2. 支持**动态样式**和**组件内样式隔离**。🚩
+1. 样式通过 JavaScript 对象来定义，返回样式类名的对象集合，保持原生`className`引用；🚩
+2. 支持**动态样式**和**组件内样式隔离**。
 3. 样式的生成发生在**运行时**，灵活性高，但在性能上不如**静态编译**的方案; 
-4. 适合复杂的、需要动态生成或修改样式的场景，但可能在某些性能敏感的场景下表现不佳。(jss系列已停止维护，不推荐使用⚠️)
+4. 适合复杂且需要动态生成或修改样式的场景，但可能在性能敏感的情况下表现不佳。(jss系列已停止维护，不推荐使用⚠️)
 
 ```jsx
 import React from 'react'
@@ -72,8 +71,6 @@ const useStyles = createUseStyles({
 </style>
 ```
 
-
-
 ## @stylexjs/stylex<sup>[2]</sup>
 
 1. 通过静态提取的方式将**样式**转化为**类名**；**零运行时消耗**。🚩
@@ -119,17 +116,14 @@ const styles = stylex.create({
 
 # Styled Component
 
-> `Styled-Component`也是一类具体的 `CSS-in-JS` 实现库，
-> `styled`写法由 styled-component首创，使用ES6模版字符串的形式编写强调**组件级别样式**，在CSS-in-JS也可以作为一个大类。
->
-> 参考：https://heatseeker.hashnode.dev/top-css-in-js-libraries-compared （博文图片可以参考）
+> `Styled-Components` 是一类具体的 CSS-in-JS 实现库，`styled` 写法由 styled-components 首创，使用 ES6 模板字符串的形式编写，强调**组件级别样式**。
 
 ## styled-component<sup>[3]</sup>
 
-1. `styled`方法可以在所有组件或任何第三方组件上完美运行，只要组件是通过`className`属性获取样式；
+1. `styled`方法可以在所有组件或任何第三方组件上完美运行，只要组件是通过`className`属性获取样式。
    🚩*Note: react-native组件已经默认兼容为`style`*
    
-2. 优势是：有着成熟的生态系统和社区支持，许多第三方库和组件也基于它，适合初次接触CSS-in-JS的开发者。 ✅
+2. 具有成熟的生态系统和社区支持，适合初次接触 CSS-in-JS 的开发者。✅
 
 ```tsx
 import { styled } from 'styled-components'
@@ -140,54 +134,63 @@ const Button = styled.button`
 
 return (
   <Button></Button>
-){
+)
 
  
 {/*样式最终是被编译成hash类名 ⬇️ ⬇️ ⬇️*/}
 <button {…props} className=“css-hashname”/>
 ```
 
-## @emotion/styled & @emotion/css<sup>[4]</sup>
+## @emotion/styled<sup>[4]</sup>
 
-1. 相对于`styled-component`,`@emotion/styled`是经过`@emotion`系列拆分后的**体积更小**
-2. 在 **SSR** 方面的表现更为出色，支持**静态 CSS 提取**，可以减少首次加载时的样式计算。✅
-3.  `@emption/css`首次提出了**`css`模版字符串**生成classname的写法
+1. 相对于 `styled-components`，`@emotion/styled` 体积更小。
+2. 在 **SSR** 方面表现更为出色，支持**静态 CSS 提取**，减少首次加载时的样式计算。✅
 
-- **@emotion/styled**
-  styled-component独立包
+```jsx
+import styled from '@emotion/styled'
+```
 
-  ```jsx
-  import styled from '@emotion/styled'
-  ```
+# css props
 
-- **@emotion/css**
-  书写内联style生成className的基础包🌟
+## @emotion/css<sup>[5]</sup>
 
-  ```tsx
-  /** @jsxImportSource @emotion/css */
-  import { css } from '@emotion/css'
-  
-  const className = css`
-    color: hotpink;
-  `
-  (<div className={className} />)
-  ```
-  
-- **@emotion/react**
-  react项目专用
+> `@emption/css`首次提出了**`css props`**作为className的写法，这种独特的写法也可以作为一个大类。
 
-  ```jsx
-  import { jsx, css, Global, ClassNames } from '@emotion/react'
-  ```
+styled component组件式的写法就避免不了**组件命名负担**，因此出现一种重新定义DOM的类名接收方式`css props`，
+并提供了对象和模板字符串2种**内联**写法：
 
-# twin.macro
+```jsx
+// 通过@emotion/react的"jsx"来实现props注入的
+import { jsx, css, Global, ClassNames } from '@emotion/react'
 
-## 通过Babel宏提供简便语法糖
+// css对象
+(<div
+   css={{
+      backgroundColor: 'hotpink',
+      '&:hover': {
+        color: 'lightgreen'
+      }
+    }}
+  >
+    This has a hotpink background.
+</div>)
 
->  🚩**`twin.macro` <sup>[5]</sup>集成了 `styled-component` 、 `@emotion/styled` 和 `tailwindcss`** 
->  （查看 [package.json](https://github.com/ben-rogerson/twin.macro/blob/master/package.json#L70) 依赖）
->
->  Note: nextjs14 SWC打包器不支持babel宏，不过最近修复了这个问题 https://github.com/ben-rogerson/twin.examples/tree/master/next-stitches-typescript
+// css模板字符串
+(<div
+   css={css`
+     background-color: hotpink;
+     &:hover {
+      color: ${color};
+     }
+   `}
+  >
+    This has a hotpink background.
+</div>)
+```
+
+## twin.macro 宏<sup>[6]</sup>
+
+>  🚩 **`twin.macro` 集成了 `styled-components`、`@emotion/styled` 和 `tailwindcss`**，通过 Babel 宏提供简便语法糖。
 
 1. **【 tw=“classname” 】➡️  className**
 
@@ -232,9 +235,9 @@ return (
    (<h1 style={style}>asd</h1>)
    ```
 
-## 结合 Tailwind CSS 的实用性与 CSS-in-JS 的灵活性
+### 结合 Tailwind CSS 的实用性与 CSS-in-JS 的灵活性
 
-1. 单一的`styled-component`会疲于手写CSS样式；
+1. 单一的`styled-component`/`css props`会疲于手写CSS样式；
 2. 单一的`tailwind`样式类名会导致代码很长、阅读性差；
 3. 各取所长，即做到组件级别的样式隔离，又能快速定义样式。
 
@@ -251,11 +254,12 @@ const Component = () => <Input hasHover />
 
 # antd在CSS-in-JS中的实践
 
-## CSS架构模式(v4.x)
+## CSS架构模式
 
 在V5.0之前的组件样式设计使用CSS架构模式，便于：
 
 1.  **修改`prefixCls`**
+   
    ```diff
    <Button prefixCls="my" />
    <style>
@@ -266,7 +270,7 @@ const Component = () => <Input hasHover />
    - <button class="ant-btn" />
    + <button class="my-btn" />
    ```
-
+   
 2. **固定 class 便于覆盖**（包括傀儡class）
 
    > 傀儡class：本身无样式，为了单纯覆盖
@@ -280,23 +284,6 @@ const Component = () => <Input hasHover />
    import Button from 'antd/lib/button'
    import 'antd/es/button/style'
    ```
-
-## CSS变量方案
-
-> V4.17.0文档：https://4x.ant.design/docs/react/customize-theme-variable-cn （试验性）
-> V5.0文档：https://ant.design/docs/react/css-variables-cn （融合了CSS-in-JS能力）
-
-CSS变量的优势：
-
-- 样式只生成一次
-- 动态主题只修改变量
-- 多主题只增加变量
-
-CSS变量的劣势：
-
-- 浏览起兼容性差（如IE）
-- 动态修改 CSS 变量可能导致性能下降，尤其是在频繁更改时
-- 可通过`cssVar`配置来开启/关闭CSS变量模式
 
 ## CSS-in-JS方案
 
@@ -331,17 +318,33 @@ CSS变量的劣势：
 3. **针对SSR的优化**
    参考代码： [@ant-design/nextjs-registry](https://github.com/ant-design/nextjs-registry/blob/main/src/AntdRegistry.tsx)
 
+## CSS变量方案
+
+CSS变量的优势：
+
+- 样式只生成一次
+- 动态主题只修改变量
+- 多主题只增加变量
+
+CSS变量的劣势：
+
+- 浏览起兼容性差（如IE）
+- 动态修改 CSS 变量可能导致性能下降，尤其是在频繁更改时
+
+因此自V4.17.0开始只是尝试[试验性](https://4x.ant.design/docs/react/customize-theme-variable-cn )引入；
+而在V5.0中随着**天量的Design Token主题变量**，决定正式拥抱CSS变量方案，并且融合了CSS-in-JS能力解决了性能问题（文档：https://ant.design/docs/react/css-variables-cn ），兼容性问题将交给用户通过`cssVar`配置是否开启/关闭CSS变量模式。
+
 # antd-style
 
 antd内部使用的`@ant-design/cssinjs`写法极其复杂难懂，这是为了兼容历史包袱的产物，也为了换得相比 styled-component 和 emotion 都要好很多的性能。
 
 虽然antd内部不能像JSS或者Styled Component那样的写法，因为职责和边界只在于提供高品质的基础组件；但是应用层如何使用样式方案， antd 并不限制。
 
-🚩**为了将 v5 的 token 系统的推行变得更加顺利，ant design组织还提供了一个使用antd token系统的最佳cssinjs方案：`antd-style`<sup>[6]</sup>**。
+🚩**因此为了将 v5 的 token 系统的推行变得更加顺利，ant design组织便提供了一个使用antd token系统的最佳cssinjs方案：`antd-style`<sup>[7]</sup>**。
 
-## JSS + css模版字符串组合
+## 结合 JSS 的函数特性 + css props快捷书写组合
 
-`antd-style`是基于`emotion`二次封装，提供的核心api是`createStyles`，所以写法上包含了**JSS**和**css模版字符串**2种写法：
+`antd-style`是基于`emotion`二次封装，提供的核心api是`createStyles`，所以写法上包含了**JSS**和**css模板字符串**2种写法：
 
 ```tsx
 import { createStyles } from 'antd-style';
@@ -395,6 +398,11 @@ export default () => {
 };
 ```
 
+- 大量使用css props写法会导致：1)样式代码耦合 ，2）re-render性能缺陷
+  *详见：[《Why We're Breaking Up with CSS-in-JS》](https://dev.to/srmagura/why-were-breaking-up-wiht-css-in-js-4g9b)*
+- JSS的写法可以将Design Token变量很好地融入进去并得到缓存
+- 两者的结合各取所长，非常适合业务应用和基于 antd 二次封装的组件库。
+
 
 
 以上，就是CSS in JS目前所有的思想。
@@ -404,6 +412,7 @@ export default () => {
 - [1] **react-jss**: https://cssinjs.org/react-jss?v=v10.10.1
 - [2] **@stylexjs/stylex**: https://stylexjs.com/docs/learn/styling-ui/defining-styles/
 - [3] **styled-component**: https://styled-components.com/docs/basics#motivation
-- [4] **@emotion/css**: https://emotion.sh/docs/css-prop
-- [5] **twin.macro**: https://github.com/ben-rogerson/twin.macro
-- [6] **antd-style**: https://ant-design.github.io/antd-style/zh-CN/guide
+- [4]**@emotion/styled**: https://emotion.sh/docs/styled
+- [5] **@emotion/css**: https://emotion.sh/docs/css-prop
+- [6] **twin.macro**: https://github.com/ben-rogerson/twin.macro
+- [7] **antd-style**: https://ant-design.github.io/antd-style/zh-CN/guide
