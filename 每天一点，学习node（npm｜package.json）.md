@@ -18,6 +18,16 @@ npm config delete proxy
 
 
 
+# 重命名npm包
+
+```json
+"dependencies": {
+  "@ant-design/react-native": "npm:@react-sextant/react-native-test@5.2.4",
+}
+```
+
+
+
 # 依赖管理
 
 > 参考链接：[https://mp.weixin.qq.com/s/9JCs3rCmVuGT3FvKxXMJwg](https://mp.weixin.qq.com/s/9JCs3rCmVuGT3FvKxXMJwg)
