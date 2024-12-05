@@ -1,4 +1,8 @@
 > https://www.bilibili.com/video/BV1sk4y1M7ru/ 《7天学JAVA》
+>
+> https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/Java%20%E4%B8%9A%E5%8A%A1%E5%BC%80%E5%8F%91%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%20100%20%E4%BE%8B 《Java 业务开发常见错误 100 例》
+>
+> https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/Spring%E7%BC%96%E7%A8%8B%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF50%E4%BE%8B《Spring编程常见错误50例》
 
 # 如何设计一个短信验证码登录功能？
 
@@ -50,7 +54,183 @@
 
 以上所有安全操作都是等保（网络安全等级）规定必须要做到的
 
+## 缓存穿透
 
+> 指请求的数据不存在于缓存中，导致每次请求都需要直接访问数据库，
+> 进而使数据库压力增大，甚至可能被恶意攻击拖垮
+
+
+
+| 问题     | 定义                                                         | 解决方案                                                     | 库/框架                                                      |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 缓存穿透 | 请求的数据在缓存和数据库中都 不存在，导致每次请求都落在数据库。 | **缓存控制**(查询结果为空时，也要缓存起来)、<br />**参数校验**、**布隆过滤器**、<br />**限流** | **Google Guava** 布隆过滤器                                  |
+| 缓存击穿 | 缓存中某些 热点数据 失效，短时间内大量请求同时查询数据库。   | 设置 **热点数据** 用不过期、使用互斥锁或分布式锁避免并发查询 | **Caffeine** 适合热点数据和空值缓存 **Redisson** 分布式redis环境 |
+| 缓存雪崩 | 缓存中大量数据同时失效，导致所有请求都直接落到数据库，可能引发数据库崩溃。 | 缓存失效时间分散设置、预热缓存、使用多级缓存架构             | **Spring Cache** 灵活集成多种缓存实现                        |
+
+
+
+## 幂等性设计
+
+> 指多次执行同一个操作，结果是一样的，不会产生不必要的副作用。
+> 接口超时后的请求重试是一个不错的选择，但需要考虑服务器端口的幂等性设计是否允许我们重试。
+>
+> **Spring Cache（缓存）、Redisson（分布式锁） 和 Spring Retry（重试机制）**
+
+实现方式：
+
+1. **使用幂等性Key进行去重**
+   在客户端生成一个唯一的请求ID作为每次请求时去重标的
+
+   ```java
+   @RequestMapping("/createOrder")
+   public String createOrder(@RequestBody OrderRequest request) {
+       return orderService.createOrder(request.getOrderId(), request.getUserId());
+   }
+   ```
+
+2. **在数据库中设置唯一约束（Transaction ID），确保重复请求不会产生重复数据。**
+   如UUID、订单编号
+
+   ```java
+   @Entity
+   public class Payment {
+       @Id
+       @GeneratedValue(strategy = GenerationType.IDENTITY)
+       private Long id;
+   
+       @Column(unique = true)  // Ensure unique constraint on transactionId
+       private String transactionId;
+   
+       private String status;
+   
+       // other fields, getters, setters
+   }
+   ```
+
+3. **使用AOP自动处理幂等性检查**
+   @Aspect中间件
+
+   ```java
+   @Aspect
+   @Component
+   public class IdempotencyAspect {
+   
+       @Autowired
+       private RedisCacheService redisCacheService;
+   
+       @Around("@annotation(Idempotent)")
+       public Object handleIdempotency(ProceedingJoinPoint joinPoint) throws Throwable {
+           Object[] args = joinPoint.getArgs();
+           String requestId = (String) args[0];  // Assume the first argument is the request ID
+   
+           // Check if request is already processed
+           if (redisCacheService.isRequestProcessed(requestId)) {
+               return "Request already processed";
+           }
+   
+           // Proceed with the original method
+           Object result = joinPoint.proceed();
+   
+           // Cache the result to prevent future retries
+           redisCacheService.cacheRequest(requestId, result);
+   
+           return result;
+       }
+   }
+   ```
+
+4. **在HTTP协议层面利用幂等的HTTP方法（如GET和PUT）保证幂等性。**
+   GET只取、PUT重复存也是结果一样。
+
+## 原子性
+
+保证不会出现部分执行的状态。
+
+## 分布式锁
+
+先查询再保存业务中，在并发场景下，可能两个线程都查不到数据，然后都去保存了。
+
+----
+
+
+
+## Spring Cloud + Feign
+
+## Spring Boot + Apache HttpClient
+
+# 线程
+
+# 锁
+
+## synchronized 关键字
+
+**类似js的`async/await`，是java里的线程同步机制，适用于需要保证多线程访问共享资源安全的场景**
+
+```java
+Object lock = new Object();
+ 
+synchronized (lock) {
+  ...
+}
+```
+
+缺点是**非公平锁**，线程竞争可能导致某些线程“饥饿”
+
+## java.util.concurrent.ReentrantLock 公平锁
+
+```java
+Lock lock = new ReentrantLock();
+
+lock.lock(); // 锁上
+lock.unlock(); // 解锁
+```
+
+锁会增加代码复杂性。
+
+## ConcurrentHashMap
+
+ConcurrentHashMap是一个高性能的线程安全的哈希表容器，
+这里的“**线程安全**”只能保证提供的**原子性写读操作是线程安全的**。
+
+## Collections.synchronizedXXX
+
+将XXX封装成线程安全的XXX
+如：`Collections.synchronizedMap`
+
+```java
+Map<Interger, String> map = Collections.synchronizedMap(new HashMap<>());
+
+// 开线程1
+Thread thread1 = new Thread(() -> {
+	for (int i = 0; i < 1000; i++) {
+    map.put(i, "Value " + i);
+  }
+})
+  
+  // 开线程2
+Thread thread1 = new Thread(() -> {
+	for (int i = 1000; i < 2000; i++) {
+    map.put(i, "Value " + i);
+  }
+})
+  
+// 启动线程
+thread1.start();
+thread2.start();
+
+// 等待两个线程执行完
+thread1.join();
+thread2.join();
+
+// 打印Map的大小
+System.out.println("Map size: " + map.size());
+```
+
+# 连接池
+
+
+
+# Java Spring ⬇️
 
 # XML
 
@@ -309,7 +489,7 @@ Student s = new Student(1, "李华", t);
 
 ### 注解
 
-> 🚩**注解的目的是使我们的配置文件（xml）更简单**🚩
+> 在原有文件不改变的情况下，嵌入一些补充信息。🚩**注解的目的是使我们的配置文件（xml）更简单**🚩
 
 - **@Component** 
   实例化Bean，默认名称为类名 首字母变小写，无需指定setter方法
@@ -586,3 +766,43 @@ Java速成班课件
 
 - 持久层
   同SSM
+
+
+
+# Spring Data JPA 项目结构
+
+- domain
+  同 pojo
+
+  ```java
+  @Entity
+  public class User {
+      @Id
+      @GeneratedValue(strategy = GenerationType.IDENTITY)
+      private Long id;
+      
+      private String name;
+      private String email;
+  
+      // getters and setters
+  }
+  ```
+
+  
+
+- dao (Data Access Object)
+
+  同 mapper
+  ```java
+  import org.springframework.data.jpa.repository.JpaRepository;
+  
+  public interface UserRepository extends JpaRepository<User, Long> {
+      List<User> findByName(String name);
+  }
+  ```
+
+  
+
+- web
+  同 controller
+
